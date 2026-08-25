@@ -1,11 +1,13 @@
+import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
-import { LayoutDashboard, Users, UserCog, Wallet, Settings, LogOut, MessageSquare, Home, User, FileText } from 'lucide-react';
+import { LayoutDashboard, Users, UserCog, Wallet, Settings, LogOut, MessageSquare, Home, User, FileText, Menu, X } from 'lucide-react';
 
 export default function Layout() {
   const navigate = useNavigate();
   const { adminProfile } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -22,27 +24,32 @@ export default function Layout() {
   ];
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', backgroundColor: 'var(--bg-base)' }}>
+    <div className="admin-layout">
+      {/* Sidebar Overlay (Mobile) */}
+      <div 
+        className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`} 
+        onClick={() => setSidebarOpen(false)}
+      ></div>
+
       {/* Sidebar */}
-      <aside style={{
-        width: '260px',
-        backgroundColor: 'var(--bg-surface)',
-        borderRight: '1px solid var(--border)',
-        display: 'flex',
-        flexDirection: 'column',
-        flexShrink: 0
-      }}>
-        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
-          <h2 style={{ fontSize: '1.25rem', color: 'var(--primary)', margin: 0 }}>Welfare Society Foundation Portal</h2>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Admin Portal</p>
+      <aside className={`admin-sidebar ${sidebarOpen ? 'open' : ''}`}>
+        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h2 style={{ fontSize: '1.25rem', color: 'var(--primary)', margin: 0 }}>Welfare Society</h2>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Admin Portal</p>
+          </div>
+          <button className="mobile-menu-btn" onClick={() => setSidebarOpen(false)}>
+            <X size={24} />
+          </button>
         </div>
         
-        <nav style={{ flex: 1, padding: '1.5rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <nav style={{ flex: 1, padding: '1.5rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', overflowY: 'auto' }}>
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.end}
+              onClick={() => setSidebarOpen(false)}
               style={({ isActive }) => ({
                 display: 'flex',
                 alignItems: 'center',
@@ -69,31 +76,29 @@ export default function Layout() {
       </aside>
 
       {/* Main Content */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <header style={{
-          height: '64px',
-          flexShrink: 0,
-          backgroundColor: 'var(--bg-surface)',
-          borderBottom: '1px solid var(--border)',
-          display: 'flex',
-          alignItems: 'center',
-          padding: '0 2rem',
-          justifyContent: 'flex-end'
-        }}>
+      <main className="admin-main">
+        <header className="admin-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <NavLink to="/" className="btn btn-secondary" style={{ fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Home size={16} /> Home
+            <button className="mobile-menu-btn" onClick={() => setSidebarOpen(true)}>
+              <Menu size={24} />
+            </button>
+            {/* Provide empty div space if no menu button to push right items to end */}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <NavLink to="/" className="btn btn-secondary" style={{ fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem' }}>
+              <Home size={16} /> <span className="header-btn-text">Home</span>
             </NavLink>
-            <NavLink to="/donate" className="btn btn-secondary" style={{ fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <User size={16} /> Member Portal
+            <NavLink to="/donate" className="btn btn-secondary" style={{ fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem' }}>
+              <User size={16} /> <span className="header-btn-text">Portal</span>
             </NavLink>
-            <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--primary-light)' }}></div>
-            <span style={{ fontWeight: 500 }}>{adminProfile?.full_name || 'Admin User'}</span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold' }}>
+              {adminProfile?.full_name ? adminProfile.full_name.charAt(0).toUpperCase() : 'A'}
+            </div>
+            <span className="header-btn-text" style={{ fontWeight: 500 }}>{adminProfile?.full_name || 'Admin'}</span>
           </div>
         </header>
 
-        
-        <div style={{ padding: '2rem', flex: 1, overflowY: 'auto' }}>
+        <div style={{ padding: '1rem', flex: 1, overflowY: 'auto', backgroundColor: 'var(--bg-elevated)' }}>
           <Outlet />
         </div>
       </main>
