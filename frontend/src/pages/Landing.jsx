@@ -5,7 +5,11 @@ import { User, ShieldCheck } from 'lucide-react';
 export default function Landing() {
   const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
-  const slides = ['/slide/1.png', '/slide/2.png', '/slide/3.png'];
+  const slides = [
+    `${import.meta.env.BASE_URL}slide/1.png`, 
+    `${import.meta.env.BASE_URL}slide/2.png`, 
+    `${import.meta.env.BASE_URL}slide/3.png`
+  ];
 
   useEffect(() => {
     const timer = setInterval(() => {

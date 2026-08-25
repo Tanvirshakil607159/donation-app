@@ -85,6 +85,7 @@ serve(async (req) => {
       ? "https://sandbox.aamarpay.com/jsonpost.php" 
       : "https://secure.aamarpay.com/jsonpost.php";
 
+    const clientOrigin = req.headers.get("origin") || req.headers.get("referer") || APP_BASE_URL || "http://localhost:5173";
     const payload = {
       store_id: STORE_ID,
       signature_key: SIGNATURE_KEY,
@@ -102,6 +103,7 @@ serve(async (req) => {
       fail_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/payment-ipn`,
       cancel_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/payment-ipn`,
       desc: "Monthly Donation",
+      opt_a: clientOrigin,
       type: "json"
     };
 

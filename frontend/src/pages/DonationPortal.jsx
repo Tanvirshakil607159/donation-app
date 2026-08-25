@@ -111,7 +111,7 @@ export default function DonationPortal() {
         // AmarPay sandbox is frequently down/hanging, add a demo fallback
         if (confirm(`Payment initialization failed: ${msg}\n\nThe AmarPay Sandbox API appears to be down right now. Would you like to simulate a successful payment redirect for this demo?`)) {
             const demoTranId = `DON-DEMO-${Date.now()}`;
-            window.location.href = `/?payment=success&tran_id=${demoTranId}`;
+            window.location.href = `${import.meta.env.BASE_URL}?payment=success&tran_id=${demoTranId}`;
             return;
         } else {
             throw new Error(msg);
@@ -120,7 +120,7 @@ export default function DonationPortal() {
       if (data?.error) {
         if (confirm(`Payment initialization failed: ${data.error}\n\nWould you like to simulate a successful payment redirect for this demo?`)) {
             const demoTranId = `DON-DEMO-${Date.now()}`;
-            window.location.href = `/?payment=success&tran_id=${demoTranId}`;
+            window.location.href = `${import.meta.env.BASE_URL}?payment=success&tran_id=${demoTranId}`;
             return;
         } else {
             throw new Error(data.error);

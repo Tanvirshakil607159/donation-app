@@ -11,7 +11,7 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  const APP_BASE_URL = Deno.env.get("APP_BASE_URL") || "";
+  const FALLBACK_BASE_URL = Deno.env.get("APP_BASE_URL") || "";
 
   try {
     const supabase = createClient(
@@ -34,6 +34,7 @@ serve(async (req) => {
 
     const tran_id = payload.mer_txnid || payload.tran_id; // AmarPay usually uses mer_txnid
     const status = payload.pay_status;
+    const clientOrigin = payload.opt_a || FALLBACK_BASE_URL;
 
     if (!tran_id) {
       throw new Error("Missing tran_id in payload");
@@ -66,9 +67,11 @@ serve(async (req) => {
         .eq("tran_id", tran_id)
         .eq("status", "PENDING");
 
-      if (APP_BASE_URL) {
+      if (clientOrigin) {
+        // Fix double query string issue if clientOrigin has one
+        const char = clientOrigin.includes('?') ? '&' : '?';
         return Response.redirect(
-          `${APP_BASE_URL}?payment=${finalStatus.toLowerCase()}&tran_id=${tran_id}`, 302
+          `${clientOrigin}${char}payment=${finalStatus.toLowerCase()}&tran_id=${tran_id}`, 302
         );
       }
       return new Response("OK");
@@ -110,9 +113,10 @@ serve(async (req) => {
     if (!isValidated) {
       // Log but don't mark as failed — could be a timing issue
       // The payment might still come through via a subsequent IPN
-      if (APP_BASE_URL) {
+      if (clientOrigin) {
+        const char = clientOrigin.includes('?') ? '&' : '?';
         return Response.redirect(
-          `${APP_BASE_URL}?payment=pending&tran_id=${tran_id}`, 302
+          `${clientOrigin}${char}payment=pending&tran_id=${tran_id}`, 302
         );
       }
       return new Response("Validation rejected");
@@ -127,8 +131,9 @@ serve(async (req) => {
 
     if (!pendingRows || pendingRows.length === 0) {
       // Already processed (idempotent)
-      if (APP_BASE_URL) {
-        return Response.redirect(`${APP_BASE_URL}?payment=success&tran_id=${tran_id}`, 302);
+      if (clientOrigin) {
+        const char = clientOrigin.includes('?') ? '&' : '?';
+        return Response.redirect(`${clientOrigin}${char}payment=success&tran_id=${tran_id}`, 302);
       }
       return new Response("OK");
     }
@@ -195,15 +200,16 @@ serve(async (req) => {
       });
     }
 
-    if (APP_BASE_URL) {
-      return Response.redirect(`${APP_BASE_URL}?payment=success&tran_id=${tran_id}`, 302);
+    if (clientOrigin) {
+      const char = clientOrigin.includes('?') ? '&' : '?';
+      return Response.redirect(`${clientOrigin}${char}payment=success&tran_id=${tran_id}`, 302);
     }
     return new Response("OK");
 
   } catch (error: any) {
-    if (APP_BASE_URL) {
+    if (FALLBACK_BASE_URL) {
       return Response.redirect(
-        `${APP_BASE_URL}?payment=error&message=${encodeURIComponent(error.message)}`, 302
+        `${FALLBACK_BASE_URL}?payment=error&message=${encodeURIComponent(error.message)}`, 302
       );
     }
     return new Response(JSON.stringify({ error: error.message }), {
