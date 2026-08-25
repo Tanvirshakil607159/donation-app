@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Search, CreditCard, CheckCircle2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import Modal from '../components/Modal';
 
 export default function DonationPortal() {
@@ -143,7 +144,7 @@ export default function DonationPortal() {
       {/* Public Header */}
       <header style={{ backgroundColor: 'var(--bg-elevated)', padding: '1rem 2rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2 style={{ margin: 0, color: 'var(--primary)' }}>Welfare Society Foundation Portal</h2>
-        <a href="/" className="btn btn-secondary" style={{ fontSize: '0.875rem' }}>Home</a>
+        <Link to="/" className="btn btn-secondary" style={{ fontSize: '0.875rem' }}>Home</Link>
       </header>
 
       <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>

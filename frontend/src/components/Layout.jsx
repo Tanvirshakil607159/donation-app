@@ -81,12 +81,12 @@ export default function Layout() {
           justifyContent: 'flex-end'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <a href="/" className="btn btn-secondary" style={{ fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <NavLink to="/" className="btn btn-secondary" style={{ fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Home size={16} /> Home
-            </a>
-            <a href="/donate" className="btn btn-secondary" style={{ fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            </NavLink>
+            <NavLink to="/donate" className="btn btn-secondary" style={{ fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <User size={16} /> Member Portal
-            </a>
+            </NavLink>
             <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--primary-light)' }}></div>
             <span style={{ fontWeight: 500 }}>{adminProfile?.full_name || 'Admin User'}</span>
           </div>
