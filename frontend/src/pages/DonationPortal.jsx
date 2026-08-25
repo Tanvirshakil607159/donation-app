@@ -15,6 +15,7 @@ export default function DonationPortal() {
   });
   const [member, setMember] = useState(null);
   const [error, setError] = useState('');
+  const [successTxId, setSuccessTxId] = useState(null);
 
   // Step 2 State
   const [selectedMonths, setSelectedMonths] = useState([]);
@@ -35,24 +36,23 @@ export default function DonationPortal() {
     return (mYear > 2026) || (mYear === 2026 && mMonth >= 7);
   });
 
-  async function handleLookup(e) {
-    e.preventDefault();
+  async function performLookup(code, phone) {
     setLoading(true);
     setError('');
     try {
       const { data, error } = await supabase
         .from('members')
         .select('*, category:category_id(default_amount)')
-        .eq('member_code', lookup.member_code)
-        .eq('phone', lookup.phone)
+        .eq('member_code', code)
+        .eq('phone', phone)
         .eq('status', 'active')
         .single();
         
       if (error || !data) throw new Error('Member not found or inactive. Please check credentials.');
       
       // Save for convenience
-      localStorage.setItem('saved_member_code', lookup.member_code);
-      localStorage.setItem('saved_member_phone', lookup.phone);
+      localStorage.setItem('saved_member_code', code);
+      localStorage.setItem('saved_member_phone', phone);
 
       const { data: donations } = await supabase
         .from('donations')
@@ -68,12 +68,41 @@ export default function DonationPortal() {
 
       setMember(data);
       setStep(2);
+      return true;
     } catch (err) {
       setError(err.message);
+      return false;
     } finally {
       setLoading(false);
     }
   }
+
+  async function handleLookup(e) {
+    if (e) e.preventDefault();
+    await performLookup(lookup.member_code, lookup.phone);
+  }
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get('payment');
+    const tranId = params.get('tran_id');
+    
+    if (paymentStatus === 'success' && tranId) {
+      setSuccessTxId(tranId);
+      // Clean up the URL so it doesn't stay there if they refresh
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      // Try to auto-login if they have saved credentials
+      const savedCode = localStorage.getItem('saved_member_code');
+      const savedPhone = localStorage.getItem('saved_member_phone');
+      if (savedCode && savedPhone) {
+        performLookup(savedCode, savedPhone);
+      }
+    } else if (paymentStatus === 'error' || paymentStatus === 'failed' || paymentStatus === 'cancelled') {
+      setError(`Payment ${paymentStatus}: ${params.get('message') || 'Transaction failed or was cancelled.'}`);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   function toggleMonth(value) {
     if (paidMonths.includes(value)) return;
@@ -97,7 +126,7 @@ export default function DonationPortal() {
           phone: member.phone,
           amount: amount,
           donation_months: selectedMonths,
-          return_url: window.location.origin + import.meta.env.BASE_URL
+          return_url: window.location.href.split('?')[0]
         }
       });
       
@@ -113,7 +142,7 @@ export default function DonationPortal() {
         // AmarPay sandbox is frequently down/hanging, add a demo fallback
         if (confirm(`Payment initialization failed: ${msg}\n\nThe AmarPay Sandbox API appears to be down right now. Would you like to simulate a successful payment redirect for this demo?`)) {
             const demoTranId = `DON-DEMO-${Date.now()}`;
-            window.location.href = `${import.meta.env.BASE_URL}?payment=success&tran_id=${demoTranId}`;
+            window.location.href = `${window.location.pathname}?payment=success&tran_id=${demoTranId}`;
             return;
         } else {
             throw new Error(msg);
@@ -122,7 +151,7 @@ export default function DonationPortal() {
       if (data?.error) {
         if (confirm(`Payment initialization failed: ${data.error}\n\nWould you like to simulate a successful payment redirect for this demo?`)) {
             const demoTranId = `DON-DEMO-${Date.now()}`;
-            window.location.href = `${import.meta.env.BASE_URL}?payment=success&tran_id=${demoTranId}`;
+            window.location.href = `${window.location.pathname}?payment=success&tran_id=${demoTranId}`;
             return;
         } else {
             throw new Error(data.error);
@@ -401,6 +430,23 @@ export default function DonationPortal() {
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
           <button type="button" className="btn btn-primary" onClick={() => setStatementOpen(false)}>Close</button>
+        </div>
+      </Modal>
+
+      {/* Success Modal */}
+      <Modal isOpen={!!successTxId} onClose={() => setSuccessTxId(null)} title="Payment Successful!">
+        <div style={{ textAlign: 'center', padding: '1rem 0' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', marginBottom: '1rem' }}>
+            <CheckCircle2 size={32} />
+          </div>
+          <h3 style={{ margin: '0 0 0.5rem 0' }}>Thank You for Your Payment</h3>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Your monthly donation has been successfully processed.</p>
+          <div style={{ backgroundColor: 'var(--bg-elevated)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border)', fontFamily: 'var(--font-mono)', fontSize: '0.875rem' }}>
+            Transaction ID: {successTxId}
+          </div>
+          <button className="btn btn-primary" style={{ width: '100%', marginTop: '1.5rem' }} onClick={() => setSuccessTxId(null)}>
+            Continue
+          </button>
         </div>
       </Modal>
     </div>

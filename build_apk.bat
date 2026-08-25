@@ -5,8 +5,13 @@ echo   Updating Web Assets and Building Android APK...
 echo ========================================================
 echo.
 
-echo [1/4] Copying latest index.html to Capacitor www directory...
-copy /Y index.html donation-app\www\index.html
+echo [1/4] Building React frontend and copying to Capacitor www directory...
+cd frontend
+call npx vite build --base=/
+cd ..
+rmdir /S /Q donation-app\www
+mkdir donation-app\www
+xcopy /E /I /Y frontend\dist\* donation-app\www\
 
 echo.
 echo [2/4] Syncing Capacitor project...
@@ -29,4 +34,3 @@ echo ========================================================
 echo   Build Complete! 
 echo   Your updated APK is ready: Foundation-Donations.apk
 echo ========================================================
-pause
