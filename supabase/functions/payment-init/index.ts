@@ -17,7 +17,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const { member_code, phone, amount, donation_months } = await req.json();
+    const { member_code, phone, amount, donation_months, return_url } = await req.json();
 
     if (!member_code || !phone || !amount || !donation_months || !Array.isArray(donation_months) || donation_months.length === 0) {
       throw new Error("Missing required fields or no months selected.");
@@ -85,7 +85,7 @@ serve(async (req) => {
       ? "https://sandbox.aamarpay.com/jsonpost.php" 
       : "https://secure.aamarpay.com/jsonpost.php";
 
-    const clientOrigin = req.headers.get("origin") || req.headers.get("referer") || APP_BASE_URL || "http://localhost:5173";
+    const clientOrigin = return_url || req.headers.get("referer") || req.headers.get("origin") || APP_BASE_URL || "http://localhost:5173";
     const payload = {
       store_id: STORE_ID,
       signature_key: SIGNATURE_KEY,

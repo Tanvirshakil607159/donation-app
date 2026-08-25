@@ -95,7 +95,8 @@ export default function DonationPortal() {
           member_code: member.member_code,
           phone: member.phone,
           amount: amount,
-          donation_months: selectedMonths
+          donation_months: selectedMonths,
+          return_url: window.location.origin + import.meta.env.BASE_URL
         }
       });
       
