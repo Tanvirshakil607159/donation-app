@@ -13,6 +13,7 @@ export function AuthProvider({ children }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) {
+        setLoading(true);
         fetchAdminProfile(session.user.id);
       } else {
         setLoading(false);
@@ -22,6 +23,7 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session) {
+        setLoading(true);
         fetchAdminProfile(session.user.id);
       } else {
         setAdminProfile(null);
