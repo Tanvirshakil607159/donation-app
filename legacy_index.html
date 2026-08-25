@@ -1,0 +1,2240 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description"
+    content="Foundation monthly donation portal — pay your monthly contribution securely via bKash, Nagad, Rocket, card or bank." />
+  <title>Foundation — Monthly Donations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <link href="https://fonts.maateen.me/nikosh/font.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    :root {
+      --primary: #E2136E;
+      --primary-dark: #B80D56;
+      --primary-light: #D1105F;
+      --primary-subtle: rgba(226, 19, 110, 0.06);
+      --bg: #FFFFFF;
+      --surface: #F6F7F9;
+      --surface-card: #FFFFFF;
+      --surface-elevated: #F0F1F4;
+      --surface-hover: #F3F4F6;
+      --border: #E5E7EB;
+      --border-focus: rgba(226, 19, 110, 0.4);
+      --text: #1A1D23;
+      --text-secondary: #5F6672;
+      --text-muted: #9CA3AF;
+      --success: #059652;
+      --success-bg: #ECFDF5;
+      --success-border: #A7F3D0;
+      --warning: #D97706;
+      --warning-bg: #FFFBEB;
+      --warning-border: #FDE68A;
+      --error: #DC2626;
+      --error-bg: #FEF2F2;
+      --error-border: #FECACA;
+      --info-bg: #EFF6FF;
+      --info-border: #BFDBFE;
+      --r-sm: 8px;
+      --r-md: 14px;
+      --r-lg: 20px;
+      --r-pill: 100px;
+      --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+      --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    /* ============================================================
+   RESET & BASE
+   ============================================================ */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent
+    }
+
+    html {
+      -webkit-text-size-adjust: 100%;
+      scroll-behavior: smooth
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+    }
+
+    /* Bangla mode */
+    html.bn {
+      --font-body: 'Nikosh', 'Noto Sans Bengali', sans-serif
+    }
+
+    html.bn body {
+      font-size: 16px;
+      line-height: 1.7
+    }
+
+    html.bn label {
+      font-size: 13px;
+      letter-spacing: 0;
+      text-transform: none
+    }
+
+    html.bn .eyebrow {
+      font-size: 13px;
+      letter-spacing: 0.05em;
+      text-transform: none
+    }
+
+    html.bn h1 {
+      font-size: clamp(24px, 5vw, 34px)
+    }
+
+    html.bn .tabs button {
+      font-size: 14px
+    }
+
+    html.bn .tag {
+      font-size: 12px
+    }
+
+    html.bn .hint {
+      font-size: 14px
+    }
+
+    html.bn .mark-name {
+      font-size: 17px
+    }
+
+    .mono {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums
+    }
+
+    .wrap {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 max(20px, env(safe-area-inset-right)) 0 max(20px, env(safe-area-inset-left));
+      position: relative;
+      z-index: 1
+    }
+
+    /* ============================================================
+   MASTHEAD
+   ============================================================ */
+    .masthead {
+      background: var(--primary);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      padding-top: env(safe-area-inset-top);
+    }
+
+    .masthead-in {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 0;
+    }
+
+    .mark {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0
+    }
+
+    .mark-glyph {
+      width: 42px;
+      height: 42px;
+      flex: none;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.2);
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1;
+      color: #fff;
+    }
+
+    .mark-name {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #fff
+    }
+
+    .mark-sub {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.7);
+      letter-spacing: 0.3px;
+      font-weight: 400
+    }
+
+    /* Header right controls */
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    /* Language toggle */
+    .lang-toggle {
+      appearance: none;
+      border: 0;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: var(--r-pill);
+      color: #fff;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 14px;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+
+    .lang-toggle:hover {
+      background: rgba(255, 255, 255, 0.25)
+    }
+
+    /* Tab switcher */
+    .switch {
+      display: flex;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: var(--r-pill);
+      overflow: hidden;
+      flex: none;
+      padding: 3px;
+    }
+
+    .switch button {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.7);
+      padding: 7px 18px;
+      border-radius: var(--r-pill);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      letter-spacing: 0.2px;
+    }
+
+    .switch button+button {
+      border-left: none
+    }
+
+    .switch button[aria-selected="true"] {
+      background: #fff;
+      color: var(--primary);
+    }
+
+    .switch button:hover:not([aria-selected="true"]) {
+      background: rgba(255, 255, 255, 0.08)
+    }
+
+    .switch button:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: 2px
+    }
+
+    /* ============================================================
+   SHARED
+   ============================================================ */
+    .view {
+      display: none;
+      padding: 28px 0 100px;
+      position: relative;
+      z-index: 1
+    }
+
+    .view.on {
+      display: block
+    }
+
+    .eyebrow {
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--primary);
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .eyebrow::before {
+      content: '';
+      width: 18px;
+      height: 2px;
+      border-radius: 1px;
+      background: var(--primary);
+    }
+
+    h1 {
+      font-size: clamp(28px, 5vw, 38px);
+      font-weight: 700;
+      line-height: 1.15;
+      margin: 10px 0 14px;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+
+    h2 {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      letter-spacing: -0.01em
+    }
+
+    .lede {
+      color: var(--text-secondary);
+      max-width: 54ch;
+      font-size: 15px;
+      line-height: 1.65
+    }
+
+    /* Panel */
+    .panel {
+      background: var(--surface-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-card);
+      transition: border-color 0.3s;
+    }
+
+    .panel:hover {
+      border-color: #D1D5DB
+    }
+
+    .panel+.panel {
+      margin-top: 16px
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(16px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    .panel,
+    .stats,
+    .table-scroll {
+      animation: fadeUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) both
+    }
+
+    /* Form elements */
+    label {
+      display: block;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      font-family: inherit;
+      font-size: 15px;
+      color: var(--text);
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      padding: 12px 16px;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: var(--text-muted)
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(226, 19, 110, 0.08);
+    }
+
+    select {
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23999' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      appearance: none;
+      padding-right: 36px;
+    }
+
+    select option {
+      background: #fff;
+      color: var(--text)
+    }
+
+    .field+.field {
+      margin-top: 16px
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px
+    }
+
+    .row .field+.field {
+      margin-top: 0
+    }
+
+    /* Buttons */
+    button.btn {
+      appearance: none;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 14px;
+      letter-spacing: 0.3px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: var(--r-pill);
+      padding: 12px 28px;
+      transition: all 0.2s ease;
+      user-select: none;
+      -webkit-user-select: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    button.btn:hover:not(:disabled) {
+      background: var(--primary-dark)
+    }
+
+    button.btn:active:not(:disabled) {
+      background: var(--primary-dark)
+    }
+
+    button.btn:disabled {
+      background: #E5E7EB;
+      color: var(--text-muted);
+      cursor: not-allowed
+    }
+
+    button.btn.ghost {
+      background: transparent;
+      color: var(--primary);
+      border: 1px solid var(--border)
+    }
+
+    button.btn.ghost:hover:not(:disabled) {
+      background: var(--primary-subtle);
+      border-color: rgba(226, 19, 110, 0.3)
+    }
+
+    button.btn.small {
+      padding: 8px 18px;
+      font-size: 13px
+    }
+
+    button.btn:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px
+    }
+
+    /* Status messages */
+    .msg {
+      border-radius: var(--r-md);
+      padding: 14px 18px;
+      font-size: 14px;
+      margin-bottom: 16px;
+      font-weight: 500;
+      line-height: 1.5;
+      border: 1px solid transparent;
+    }
+
+    .msg.err {
+      background: var(--error-bg);
+      color: var(--error);
+      border-color: var(--error-border)
+    }
+
+    .msg.ok {
+      background: var(--success-bg);
+      color: var(--success);
+      border-color: var(--success-border)
+    }
+
+    .msg.info {
+      background: var(--warning-bg);
+      color: var(--warning);
+      border-color: var(--warning-border)
+    }
+
+    .msg[hidden] {
+      display: none
+    }
+
+    /* ============================================================
+   YEAR STRIP
+   ============================================================ */
+    .strip-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 14px
+    }
+
+    .year-nav {
+      display: flex;
+      align-items: center;
+      gap: 6px
+    }
+
+    .year-nav .yr {
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text)
+    }
+
+    .strip {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 8px
+    }
+
+    .cell {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: var(--r-md);
+      cursor: default;
+      font-family: inherit;
+      padding: 14px 4px;
+      text-align: center;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      color: var(--text);
+    }
+
+    .cell .m {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px
+    }
+
+    .cell .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-top: 8px;
+      background: var(--text-muted);
+      transition: all 0.3s
+    }
+
+    .cell.paid {
+      background: var(--success-bg);
+      border-color: var(--success-border)
+    }
+
+    .cell.paid .m {
+      color: var(--success)
+    }
+
+    .cell.paid .dot {
+      background: var(--success)
+    }
+
+    .cell.pending {
+      background: var(--warning-bg);
+      border-color: var(--warning-border)
+    }
+
+    .cell.pending .m {
+      color: var(--warning)
+    }
+
+    .cell.pending .dot {
+      background: var(--warning);
+      animation: pulse 2s ease-in-out infinite
+    }
+
+    .cell.failed {
+      background: var(--error-bg);
+      border-color: var(--error-border)
+    }
+
+    .cell.failed .m {
+      color: var(--error)
+    }
+
+    .cell.failed .dot {
+      background: var(--error)
+    }
+
+    .cell.selectable {
+      cursor: pointer
+    }
+
+    .cell.selectable:hover {
+      background: var(--primary-subtle);
+      border-color: rgba(226, 19, 110, 0.3)
+    }
+
+    .cell.chosen {
+      border-color: var(--primary) !important;
+      background: rgba(226, 19, 110, 0.08) !important;
+      box-shadow: 0 0 0 2px rgba(226, 19, 110, 0.15)
+    }
+
+    .cell.chosen .m {
+      color: var(--primary)
+    }
+
+    .cell.chosen .dot {
+      background: var(--primary)
+    }
+
+    .cell.future {
+      opacity: 1
+    }
+
+    .cell:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1)
+      }
+
+      50% {
+        opacity: 0.5;
+        transform: scale(1.3)
+      }
+    }
+
+    .legend {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 500
+    }
+
+    .legend span {
+      display: flex;
+      align-items: center;
+      gap: 7px
+    }
+
+    .legend i {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block
+    }
+
+    /* ============================================================
+   MEMBER CARD
+   ============================================================ */
+    .who {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding-bottom: 18px;
+      margin-bottom: 18px;
+      border-bottom: 1px solid var(--border)
+    }
+
+    .who-name {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.02em
+    }
+
+    .who-meta {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 4px
+    }
+
+    .who-fig {
+      text-align: right
+    }
+
+    .who-fig .n {
+      font-family: var(--font-mono);
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--primary)
+    }
+
+    .who-fig .l {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px
+    }
+
+    .paybar {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border)
+    }
+
+    .paybar .field {
+      flex: 1 1 150px;
+      margin-top: 0
+    }
+
+    .paybar .grow {
+      flex: 2 1 240px
+    }
+
+    /* ============================================================
+   ADMIN
+   ============================================================ */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px
+    }
+
+    .stat {
+      background: var(--surface-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s
+    }
+
+    .stat:hover {
+      border-color: #D1D5DB
+    }
+
+    .stat::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      border-radius: 0 2px 2px 0
+    }
+
+    .stat:nth-child(1)::before {
+      background: var(--primary)
+    }
+
+    .stat:nth-child(2)::before {
+      background: var(--success)
+    }
+
+    .stat:nth-child(3)::before {
+      background: var(--primary-light)
+    }
+
+    .stat:nth-child(4)::before {
+      background: #42A5F5
+    }
+
+    .stat:nth-child(5)::before {
+      background: var(--warning)
+    }
+
+    .stat:nth-child(6)::before {
+      background: var(--error)
+    }
+
+    .stat .n {
+      font-family: var(--font-mono);
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text)
+    }
+
+    .stat .l {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-top: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-pill);
+      padding: 4px
+    }
+
+    .tabs button {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      padding: 9px 18px;
+      border-radius: var(--r-pill);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      letter-spacing: 0.2px
+    }
+
+    .tabs button[aria-selected="true"] {
+      background: var(--primary);
+      color: #fff
+    }
+
+    .tabs button:hover:not([aria-selected="true"]) {
+      color: var(--text);
+      background: var(--surface-hover)
+    }
+
+    .tabs button:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+      border-radius: var(--r-md);
+      border: 1px solid var(--border);
+      background: var(--surface-card)
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      min-width: 640px
+    }
+
+    th {
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap
+    }
+
+    td {
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+      color: var(--text)
+    }
+
+    tbody tr:last-child td {
+      border-bottom: 0
+    }
+
+    tbody tr {
+      transition: background 0.2s
+    }
+
+    tbody tr:hover td {
+      background: var(--surface-hover)
+    }
+
+    .num {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: var(--r-pill);
+      letter-spacing: 0.3px;
+      border: 1px solid transparent
+    }
+
+    .tag.SUCCESS,
+    .tag.active {
+      background: var(--success-bg);
+      color: var(--success);
+      border-color: var(--success-border)
+    }
+
+    .tag.PENDING {
+      background: var(--warning-bg);
+      color: var(--warning);
+      border-color: var(--warning-border)
+    }
+
+    .tag.FAILED,
+    .tag.CANCELLED,
+    .tag.inactive {
+      background: var(--error-bg);
+      color: var(--error);
+      border-color: var(--error-border)
+    }
+
+    .filters {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      margin-bottom: 16px
+    }
+
+    .filters .field {
+      margin-top: 0
+    }
+
+    .filters label {
+      margin-bottom: 4px
+    }
+
+    .empty {
+      padding: 48px 20px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 14px
+    }
+
+    .sess {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 24px
+    }
+
+    .sess .who-meta {
+      margin: 0
+    }
+
+    .hint {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 10px;
+      line-height: 1.6
+    }
+
+    .spin {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: sp 0.7s linear infinite;
+      vertical-align: -2px;
+      margin-right: 8px
+    }
+
+    @keyframes sp {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 0 max(32px, env(safe-area-inset-bottom));
+      font-size: 13px;
+      color: var(--text-muted);
+      position: relative;
+      z-index: 1
+    }
+
+    @media (max-width:720px) {
+      .strip {
+        grid-template-columns: repeat(4, 1fr)
+      }
+
+      .row {
+        grid-template-columns: 1fr
+      }
+
+      .row .field+.field {
+        margin-top: 16px
+      }
+
+      .who {
+        flex-direction: column
+      }
+
+      .who-fig {
+        text-align: left
+      }
+
+      .masthead-in {
+        padding: 12px 0
+      }
+
+      .mark-sub {
+        display: none
+      }
+
+      .paybar .field {
+        flex: none;
+        width: 100%
+      }
+
+      .paybar button.btn {
+        width: 100%
+      }
+
+      .stats {
+        grid-template-columns: repeat(2, 1fr)
+      }
+
+      .tabs {
+        border-radius: var(--r-md)
+      }
+
+      .tabs button {
+        flex: 1;
+        text-align: center;
+        padding: 9px 10px;
+        font-size: 12px
+      }
+    }
+
+    @media (max-width:420px) {
+      .strip {
+        grid-template-columns: repeat(3, 1fr)
+      }
+
+      .stats {
+        grid-template-columns: 1fr
+      }
+
+      h1 {
+        font-size: 24px
+      }
+    }
+
+    @media (prefers-reduced-motion:reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header class="masthead">
+    <div class="wrap masthead-in">
+      <div class="mark">
+        <div class="mark-glyph" id="glyph">F</div>
+        <div>
+          <div class="mark-name" id="fname">Foundation</div>
+          <div class="mark-sub" data-i18n="monthly_donations">Monthly donations</div>
+        </div>
+      </div>
+      <div class="header-controls">
+        <button class="lang-toggle" id="langBtn" aria-label="Switch language">বাংলা</button>
+        <div class="switch" role="tablist">
+          <button role="tab" aria-selected="true" data-view="donate" data-i18n="tab_donate">Donate</button>
+          <button role="tab" id="adminTabBtn" aria-selected="false" data-view="admin"
+            data-i18n="tab_admin">Admin</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ DONATE ============ -->
+  <main class="view on wrap" id="view-donate">
+    <div id="payResult"></div>
+
+    <div class="eyebrow" data-i18n="eyebrow_donate">Member contribution</div>
+    <h1 data-i18n="h1_donate">Settle your month.</h1>
+    <p class="lede" data-i18n="lede_donate">Enter your member code and the phone number on your record. You'll see every
+      month of the year and which ones are still open.</p>
+
+    <div class="panel" style="margin-top:24px" id="findPanel">
+      <div class="msg err" id="findErr" hidden></div>
+      <div class="row">
+        <div class="field">
+          <label for="mCode" data-i18n="label_member_code">Member code</label>
+          <input id="mCode" class="mono" placeholder="U13-001" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="mPhone" data-i18n="label_phone">Phone number</label>
+          <input id="mPhone" class="mono" placeholder="01688607159" inputmode="numeric" autocomplete="tel">
+        </div>
+      </div>
+      <div style="margin-top:18px">
+        <button class="btn" id="findBtn" data-i18n="btn_find">Find my record</button>
+        <span class="hint" style="display:block" data-i18n="hint_code">Your code is on your membership slip. Ask the
+          office if you've lost it.</span>
+      </div>
+    </div>
+
+    <div class="panel" id="recordPanel" hidden>
+      <div class="who">
+        <div>
+          <div class="who-name" id="rName">—</div>
+          <div class="who-meta"><span class="mono" id="rCode"></span> · <span data-i18n="member_since">member
+              since</span> <span id="rSince"></span></div>
+        </div>
+        <div class="who-fig">
+          <div class="n" id="rPaid">0</div>
+          <div class="l" data-i18n="given_this_year">Given this year (BDT)</div>
+        </div>
+      </div>
+
+      <div class="strip-head">
+        <h2 data-i18n="your_year">Your year</h2>
+        <div class="year-nav">
+          <button class="btn ghost small" id="yPrev" aria-label="Previous year">←</button>
+          <span class="yr" id="yLabel">2026</span>
+          <button class="btn ghost small" id="yNext" aria-label="Next year">→</button>
+        </div>
+      </div>
+      <div class="strip" id="strip"></div>
+      <div class="legend">
+        <span><i style="background:var(--success)"></i><span data-i18n="legend_paid">Paid</span></span>
+        <span><i style="background:var(--warning)"></i><span data-i18n="legend_pending">Pending</span></span>
+        <span><i style="background:var(--error)"></i><span data-i18n="legend_failed">Failed</span></span>
+        <span><i style="background:var(--text-muted)"></i><span data-i18n="legend_open">Open — tap to
+            select</span></span>
+      </div>
+
+      <div class="msg err" id="payErr" hidden style="margin-top:18px;margin-bottom:0"></div>
+
+      <div class="paybar">
+        <div class="field grow">
+          <label for="payMonth" data-i18n="label_paying_for">Paying for</label>
+          <input id="payMonth" readonly style="cursor:default">
+        </div>
+        <div class="field">
+          <label for="payAmount" data-i18n="label_amount">Amount (BDT)</label>
+          <input id="payAmount" class="mono" type="number" min="1" step="1">
+        </div>
+        <button class="btn" id="payBtn" data-i18n="btn_pay">Continue to payment</button>
+      </div>
+      <p class="hint" data-i18n="hint_gateway">You'll be handed to SSLCommerz to pay by card, bKash, Nagad, Rocket or
+        bank. Nothing is recorded as paid until the gateway confirms it.</p>
+    </div>
+  </main>
+
+  <!-- ============ ADMIN ============ -->
+  <main class="view wrap" id="view-admin">
+
+    <div id="loginWrap">
+      <div class="eyebrow" data-i18n="eyebrow_admin">Restricted</div>
+      <h1 data-i18n="h1_admin">Admin console.</h1>
+      <p class="lede" data-i18n="lede_admin">Sign in with the account registered as a foundation administrator.</p>
+      <div class="panel" style="margin-top:24px;max-width:440px">
+        <div class="msg err" id="loginErr" hidden></div>
+        <div class="field">
+          <label for="aEmail" data-i18n="label_email">Email</label>
+          <input id="aEmail" type="email" autocomplete="username">
+        </div>
+        <div class="field">
+          <label for="aPass" data-i18n="label_password">Password</label>
+          <input id="aPass" type="password" autocomplete="current-password">
+        </div>
+        <div style="margin-top:18px"><button class="btn" id="loginBtn" data-i18n="btn_signin">Sign in</button></div>
+      </div>
+    </div>
+
+    <div id="adminWrap" hidden>
+      <div class="sess">
+        <div>
+          <h2 data-i18n="console_title">Console</h2>
+          <div class="who-meta" id="sessWho"></div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn ghost small" id="refreshBtn" data-i18n="btn_refresh">Refresh</button>
+          <button class="btn ghost small" id="logoutBtn" data-i18n="btn_signout">Sign out</button>
+        </div>
+      </div>
+
+      <div class="stats" id="stats"></div>
+
+      <div class="tabs" role="tablist">
+        <button role="tab" aria-selected="true" data-tab="members" data-i18n="tab_members">Members</button>
+        <button role="tab" aria-selected="false" data-tab="donations" data-i18n="tab_donations">Donations</button>
+        <button role="tab" aria-selected="false" data-tab="add" data-i18n="tab_add">Add member</button>
+        <button role="tab" aria-selected="false" data-tab="settings" data-i18n="tab_settings">Settings</button>
+      </div>
+
+      <!-- members -->
+      <section id="tab-members">
+        <div class="filters">
+          <div class="field" style="flex:1 1 220px">
+            <label for="mSearch" data-i18n="label_search">Search</label>
+            <input id="mSearch" data-i18n-placeholder="ph_search" placeholder="Name, code or phone">
+          </div>
+          <div class="field">
+            <label for="mStatus" data-i18n="label_status">Status</label>
+            <select id="mStatus">
+              <option value="" data-i18n="opt_all">All</option>
+              <option value="active" data-i18n="opt_active">Active</option>
+              <option value="inactive" data-i18n="opt_inactive">Inactive</option>
+            </select>
+          </div>
+          <button class="btn ghost small" id="mExportXlsx" data-i18n="btn_export_xlsx">Export Excel</button>
+          <button class="btn ghost small" id="mExportPdf" data-i18n="btn_export_pdf">Export PDF</button>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th data-i18n="th_code">Code</th>
+                <th data-i18n="th_name">Name</th>
+                <th data-i18n="th_phone">Phone</th>
+                <th data-i18n="th_monthly">Monthly</th>
+                <th data-i18n="th_total_given">Total given</th>
+                <th data-i18n="th_months_paid">Months paid</th>
+                <th data-i18n="th_last_paid">Last paid</th>
+                <th data-i18n="th_status">Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="membersBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- donations -->
+      <section id="tab-donations" hidden>
+        <div class="filters">
+          <div class="field">
+            <label for="dStatus" data-i18n="label_status">Status</label>
+            <select id="dStatus">
+              <option value="" data-i18n="opt_all">All</option>
+              <option>SUCCESS</option>
+              <option>PENDING</option>
+              <option>FAILED</option>
+              <option>CANCELLED</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="dMonth" data-i18n="label_month">Month</label>
+            <input id="dMonth" type="month">
+          </div>
+          <button class="btn ghost small" id="dClear" data-i18n="btn_clear">Clear</button>
+          <button class="btn ghost small" id="dExportXlsx" data-i18n="btn_export_xlsx">Export Excel</button>
+          <button class="btn ghost small" id="dExportPdf" data-i18n="btn_export_pdf">Export PDF</button>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th data-i18n="th_date">Date</th>
+                <th data-i18n="th_member">Member</th>
+                <th data-i18n="th_for_month">For month</th>
+                <th data-i18n="th_amount">Amount</th>
+                <th data-i18n="th_net">Net</th>
+                <th data-i18n="th_method">Method</th>
+                <th data-i18n="th_transaction">Transaction</th>
+                <th data-i18n="th_status">Status</th>
+              </tr>
+            </thead>
+            <tbody id="donationsBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- add member -->
+      <section id="tab-add" hidden>
+        <div class="panel" style="max-width:560px">
+          <div class="msg ok" id="addOk" hidden></div>
+          <div class="msg err" id="addErr" hidden></div>
+          <div class="row">
+            <div class="field"><label for="nName" data-i18n="label_full_name">Full name</label><input id="nName"
+                data-i18n-placeholder="ph_name" placeholder="e.g. Abdullah Al Mamun"></div>
+            <div class="field"><label for="nPhone" data-i18n="label_phone">Phone</label><input id="nPhone" class="mono"
+                placeholder="01XXXXXXXXX"></div>
+          </div>
+          <div class="row" style="margin-top:14px">
+            <div class="field"><label for="nCode" data-i18n="label_code_optional">Member code (optional)</label><input
+                id="nCode" class="mono" placeholder="Auto: U13-XXX"></div>
+            <div class="field"><label for="nAmount" data-i18n="label_monthly_amount">Monthly amount (BDT)</label><input
+                id="nAmount" class="mono" type="number" value="500" min="1"></div>
+          </div>
+          <div class="field" style="margin-top:14px"><label for="nEmail" data-i18n="label_email_optional">Email
+              (optional)</label><input id="nEmail" type="email"></div>
+          <div class="field"><label for="nAddress" data-i18n="label_address">Address (optional)</label><input
+              id="nAddress"></div>
+          <div class="field"><label for="nNotes" data-i18n="label_notes">Notes (optional)</label><textarea id="nNotes"
+              rows="2"></textarea></div>
+          <div style="margin-top:18px"><button class="btn" id="addBtn" data-i18n="btn_add_member">Add member</button>
+          </div>
+          <p class="hint" data-i18n="hint_code_format">Member code format is U13-XXX. If left blank, it will be assigned
+            automatically.</p>
+          <hr style="margin:24px 0; border:none; border-top:1px solid var(--border)">
+          <div class="row" style="align-items:flex-end">
+            <div class="field">
+              <label for="nBulkFile" data-i18n="label_bulk_file">Bulk Excel Upload (.xlsx, .csv)</label>
+              <input type="file" id="nBulkFile" accept=".xlsx, .xls, .csv" style="padding: 5px 0">
+            </div>
+            <button class="btn" id="bulkBtn" data-i18n="btn_bulk_upload">Upload Bulk</button>
+          </div>
+          <p class="hint"
+            style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px">
+            <span data-i18n="hint_bulk_format">Expected columns: Name, Phone, Code, Amount, Email, Address, Notes.
+              Duplicates will fail the upload.</span>
+            <button class="btn ghost small" id="downloadSampleBtn" data-i18n="btn_sample">Sample Excel</button>
+          </p>
+        </div>
+      </section>
+
+      <!-- settings -->
+      <section id="tab-settings" hidden>
+        <div class="panel" style="max-width:560px">
+          <div class="msg ok" id="setOk" hidden></div>
+          <div class="msg err" id="setErr" hidden></div>
+          <div class="row">
+            <div class="field"><label for="sName" data-i18n="label_foundation_name">Foundation name</label><input
+                id="sName"></div>
+            <div class="field"><label for="sAmount" data-i18n="label_default_amount">Default monthly
+                amount</label><input id="sAmount" class="mono" type="number" min="1"></div>
+          </div>
+          <div class="row" style="margin-top:14px">
+            <div class="field"><label for="sEmail" data-i18n="label_contact_email">Contact email</label><input
+                id="sEmail" type="email"></div>
+            <div class="field"><label for="sPhone" data-i18n="label_contact_phone">Contact phone</label><input
+                id="sPhone" class="mono"></div>
+          </div>
+          <div class="field" style="margin-top:14px"><label for="sAddress"
+              data-i18n="label_address_setting">Address</label><input id="sAddress"></div>
+          <div style="margin-top:18px"><button class="btn" id="setBtn" data-i18n="btn_save">Save settings</button></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap" data-i18n="footer_text">Donations are processed by SSLCommerz. Every transaction — successful or
+      not — is recorded.</div>
+  </footer>
+
+  <script>
+    /* ============================================================
+       I18N — English / Bangla
+       ============================================================ */
+    const I18N = {
+      en: {
+        // Header
+        monthly_donations: "Monthly donations",
+        tab_donate: "Donate",
+        tab_admin: "Admin",
+        lang_button: "বাংলা",
+
+        // Donate view
+        eyebrow_donate: "Member contribution",
+        h1_donate: "Settle your month.",
+        lede_donate: "Enter your member code and the phone number on your record. You'll see every month of the year and which ones are still open.",
+        label_member_code: "Member code",
+        label_phone: "Phone number",
+        btn_find: "Find my record",
+        hint_code: "Your code is on your membership slip. Ask the office if you've lost it.",
+        member_since: "member since",
+        given_this_year: "Given this year (BDT)",
+        your_year: "Your year",
+        legend_paid: "Paid",
+        legend_pending: "Pending",
+        legend_failed: "Failed",
+        legend_open: "Open — tap to select",
+        label_paying_for: "Paying for",
+        label_amount: "Amount (BDT)",
+        btn_pay: "Continue to payment",
+        hint_gateway: "You'll be handed to SSLCommerz to pay by card, bKash, Nagad, Rocket or bank. Nothing is recorded as paid until the gateway confirms it.",
+
+        // Admin
+        eyebrow_admin: "Restricted",
+        h1_admin: "Admin console.",
+        lede_admin: "Sign in with the account registered as a foundation administrator.",
+        label_email: "Email",
+        label_password: "Password",
+        btn_signin: "Sign in",
+        console_title: "Console",
+        btn_refresh: "Refresh",
+        btn_signout: "Sign out",
+        tab_members: "Members",
+        tab_donations: "Donations",
+        tab_add: "Add member",
+        tab_settings: "Settings",
+        label_search: "Search",
+        ph_search: "Name, code or phone",
+        label_status: "Status",
+        opt_all: "All",
+        opt_active: "Active",
+        opt_inactive: "Inactive",
+        btn_export_xlsx: "Export Excel",
+        btn_export_pdf: "Export PDF",
+        th_code: "Code",
+        th_name: "Name",
+        th_phone: "Phone",
+        th_monthly: "Monthly",
+        th_total_given: "Total given",
+        th_months_paid: "Months paid",
+        th_last_paid: "Last paid",
+        th_status: "Status",
+        th_date: "Date",
+        th_member: "Member",
+        th_for_month: "For month",
+        th_amount: "Amount",
+        th_net: "Net",
+        th_method: "Method",
+        th_transaction: "Transaction",
+        label_month: "Month",
+        btn_clear: "Clear",
+        label_full_name: "Full name",
+        ph_name: "e.g. Abdullah Al Mamun",
+        label_code_optional: "Member code (optional)",
+        label_monthly_amount: "Monthly amount (BDT)",
+        label_email_optional: "Email (optional)",
+        label_address: "Address (optional)",
+        label_notes: "Notes (optional)",
+        btn_add_member: "Add member",
+        hint_code_format: "Member code format is U13-XXX. If left blank, it will be assigned automatically.",
+        label_bulk_file: "Bulk Excel Upload (.xlsx, .csv)",
+        btn_bulk_upload: "Upload Bulk",
+        hint_bulk_format: "Expected columns: Name, Phone, Code, Amount, Email, Address, Notes. Duplicates will fail the upload.",
+        btn_sample: "Sample Excel",
+        busy_uploading: "Uploading...",
+        msg_bulk_success: " members successfully added.",
+        label_foundation_name: "Foundation name",
+        label_default_amount: "Default monthly amount",
+        label_contact_email: "Contact email",
+        label_contact_phone: "Contact phone",
+        label_address_setting: "Address",
+        btn_save: "Save settings",
+        footer_text: "Donations are processed by SSLCommerz. Every transaction — successful or not — is recorded.",
+
+        // Dynamic JS strings
+        months: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+        err_both_fields: "Enter both your member code and phone number.",
+        busy_lookup: "Looking up…",
+        busy_gateway: "Opening gateway…",
+        busy_signin: "Signing in…",
+        busy_adding: "Adding…",
+        busy_saving: "Saving…",
+        err_select_month: "Choose at least one month to pay for.",
+        err_amount_zero: "Enter a donation amount greater than zero.",
+        err_email_pass: "Enter your email and password.",
+        err_not_admin: "This account isn't registered as an administrator.",
+        err_name_phone: "Name and phone are required.",
+        msg_settings_saved: "Settings saved.",
+        no_outstanding: "Nothing outstanding for",
+        no_months: "No months selected",
+        months_selected: "months selected",
+        empty_members: 'No members yet. Add one from the "Add member" tab.',
+        empty_donations: "No transactions match this filter.",
+        btn_deactivate: "Deactivate",
+        btn_activate: "Activate",
+        stat_collected_month: "Collected this month",
+        stat_paid_month: "Members paid this month",
+        stat_collected_all: "Collected all-time",
+        stat_active_members: "Active members",
+        stat_pending: "Pending",
+        stat_failed: "Failed",
+        pay_success: "Payment received. Thank you — your donation has been recorded.",
+        pay_fail: "Payment failed. Nothing was charged. You can try again below.",
+        pay_cancel: "Payment cancelled. Nothing was charged.",
+        pay_pending: "Payment is still being confirmed. This page will show it once the gateway settles.",
+        pay_error: "We couldn't match that transaction. Contact the office with your transaction ID.",
+        title_suffix: "— Monthly Donations",
+        paid_on: "paid",
+        bdt_on: "BDT on",
+        not_due: "not due yet",
+      },
+      bn: {
+        // Header
+        monthly_donations: "মাসিক দান",
+        tab_donate: "দান করুন",
+        tab_admin: "অ্যাডমিন",
+        lang_button: "English",
+
+        // Donate view
+        eyebrow_donate: "সদস্য চাঁদা",
+        h1_donate: "আপনার মাসের চাঁদা দিন।",
+        lede_donate: "আপনার সদস্য কোড এবং রেকর্ডে থাকা ফোন নম্বর দিন। বছরের প্রতিটি মাস এবং কোনগুলো বাকি আছে তা দেখতে পাবেন।",
+        label_member_code: "সদস্য কোড",
+        label_phone: "ফোন নম্বর",
+        btn_find: "আমার রেকর্ড খুঁজুন",
+        hint_code: "আপনার কোড আপনার সদস্যপদ স্লিপে আছে। হারিয়ে গেলে অফিসে যোগাযোগ করুন।",
+        member_since: "সদস্য হয়েছেন",
+        given_this_year: "এই বছর দিয়েছেন (টাকা)",
+        your_year: "আপনার বছর",
+        legend_paid: "পরিশোধিত",
+        legend_pending: "অপেক্ষমান",
+        legend_failed: "ব্যর্থ",
+        legend_open: "বাকি — ট্যাপ করে বাছাই করুন",
+        label_paying_for: "যে মাসের জন্য",
+        label_amount: "পরিমাণ (টাকা)",
+        btn_pay: "পেমেন্টে এগিয়ে যান",
+        hint_gateway: "আপনাকে SSLCommerz-এ নিয়ে যাওয়া হবে — কার্ড, বিকাশ, নগদ, রকেট বা ব্যাংকে পরিশোধ করুন। গেটওয়ে নিশ্চিত না করা পর্যন্ত কিছু রেকর্ড হবে না।",
+
+        // Admin
+        eyebrow_admin: "সীমিত",
+        h1_admin: "অ্যাডমিন কনসোল।",
+        lede_admin: "ফাউন্ডেশনের প্রশাসক হিসেবে নিবন্ধিত অ্যাকাউন্ট দিয়ে সাইন ইন করুন।",
+        label_email: "ইমেইল",
+        label_password: "পাসওয়ার্ড",
+        btn_signin: "সাইন ইন",
+        console_title: "কনসোল",
+        btn_refresh: "রিফ্রেশ",
+        btn_signout: "সাইন আউট",
+        tab_members: "সদস্যরা",
+        tab_donations: "দানসমূহ",
+        tab_add: "সদস্য যোগ",
+        tab_settings: "সেটিংস",
+        label_search: "খুঁজুন",
+        ph_search: "নাম, কোড বা ফোন",
+        label_status: "স্ট্যাটাস",
+        opt_all: "সব",
+        opt_active: "সক্রিয়",
+        opt_inactive: "নিষ্ক্রিয়",
+        btn_export_xlsx: "Excel ডাউনলোড",
+        btn_export_pdf: "PDF ডাউনলোড",
+        th_code: "কোড",
+        th_name: "নাম",
+        th_phone: "ফোন",
+        th_monthly: "মাসিক",
+        th_total_given: "মোট দান",
+        th_months_paid: "মাস দেওয়া",
+        th_last_paid: "শেষ দান",
+        th_status: "স্ট্যাটাস",
+        th_date: "তারিখ",
+        th_member: "সদস্য",
+        th_for_month: "কোন মাসের",
+        th_amount: "পরিমাণ",
+        th_net: "নেট",
+        th_method: "মাধ্যম",
+        th_transaction: "ট্রানজেকশন",
+        label_month: "মাস",
+        btn_clear: "মুছুন",
+        label_full_name: "পূর্ণ নাম",
+        ph_name: "যেমন: আব্দুল্লাহ আল মামুন",
+        label_code_optional: "সদস্য কোড (ঐচ্ছিক)",
+        label_monthly_amount: "মাসিক পরিমাণ (টাকা)",
+        label_email_optional: "ইমেইল (ঐচ্ছিক)",
+        label_address: "ঠিকানা (ঐচ্ছিক)",
+        label_notes: "নোট (ঐচ্ছিক)",
+        btn_add_member: "সদস্য যোগ করুন",
+        hint_code_format: "সদস্য কোডের ফর্ম্যাট U13-XXX। খালি রাখলে স্বয়ংক্রিয়ভাবে নির্ধারিত হবে।",
+        label_bulk_file: "একসাথে এক্সেল আপলোড (.xlsx, .csv)",
+        btn_bulk_upload: "বাল্ক আপলোড",
+        hint_bulk_format: "প্রয়োজনীয় কলাম: Name, Phone, Code, Amount, Email, Address, Notes। ডুপ্লিকেট থাকলে আপলোড বাতিল হবে।",
+        btn_sample: "নমুনা এক্সেল",
+        busy_uploading: "আপলোড হচ্ছে...",
+        msg_bulk_success: " জন সদস্য সফলভাবে যোগ হয়েছে।",
+        label_foundation_name: "ফাউন্ডেশনের নাম",
+        label_default_amount: "ডিফল্ট মাসিক পরিমাণ",
+        label_contact_email: "যোগাযোগ ইমেইল",
+        label_contact_phone: "যোগাযোগ ফোন",
+        label_address_setting: "ঠিকানা",
+        btn_save: "সেটিংস সংরক্ষণ",
+        footer_text: "দানসমূহ SSLCommerz দ্বারা প্রক্রিয়া করা হয়। সফল বা ব্যর্থ — প্রতিটি লেনদেন রেকর্ড করা হয়।",
+
+        // Dynamic JS strings
+        months: ["জানু", "ফেব", "মার্চ", "এপ্রি", "মে", "জুন", "জুলা", "আগ", "সেপ্টে", "অক্টো", "নভে", "ডিসে"],
+        err_both_fields: "আপনার সদস্য কোড এবং ফোন নম্বর দুটোই দিন।",
+        busy_lookup: "খুঁজছি…",
+        busy_gateway: "গেটওয়ে খুলছি…",
+        busy_signin: "সাইন ইন হচ্ছে…",
+        busy_adding: "যোগ হচ্ছে…",
+        busy_saving: "সংরক্ষণ হচ্ছে…",
+        err_select_month: "অন্তত একটি মাস বাছাই করুন।",
+        err_amount_zero: "শূন্যের বেশি পরিমাণ দিন।",
+        err_email_pass: "ইমেইল এবং পাসওয়ার্ড দিন।",
+        err_not_admin: "এই অ্যাকাউন্ট প্রশাসক হিসেবে নিবন্ধিত নয়।",
+        err_name_phone: "নাম এবং ফোন আবশ্যক।",
+        msg_settings_saved: "সেটিংস সংরক্ষিত।",
+        no_outstanding: "বকেয়া নেই —",
+        no_months: "কোনো মাস বাছাই হয়নি",
+        months_selected: "টি মাস বাছাই করা হয়েছে",
+        empty_members: 'এখনো কোনো সদস্য নেই। "সদস্য যোগ" ট্যাব থেকে যোগ করুন।',
+        empty_donations: "এই ফিল্টারে কোনো লেনদেন নেই।",
+        btn_deactivate: "নিষ্ক্রিয়",
+        btn_activate: "সক্রিয়",
+        stat_collected_month: "এই মাসে আদায়",
+        stat_paid_month: "এই মাসে দিয়েছেন",
+        stat_collected_all: "সর্বকালের আদায়",
+        stat_active_members: "সক্রিয় সদস্য",
+        stat_pending: "অপেক্ষমান",
+        stat_failed: "ব্যর্থ",
+        pay_success: "পেমেন্ট সফল হয়েছে। ধন্যবাদ — আপনার দান রেকর্ড করা হয়েছে।",
+        pay_fail: "পেমেন্ট ব্যর্থ হয়েছে। কোনো টাকা কাটা হয়নি। নিচে আবার চেষ্টা করুন।",
+        pay_cancel: "পেমেন্ট বাতিল করা হয়েছে। কোনো টাকা কাটা হয়নি।",
+        pay_pending: "পেমেন্ট নিশ্চিত হচ্ছে। গেটওয়ে সেটল হলে এখানে দেখাবে।",
+        pay_error: "এই ট্রানজেকশন মেলানো যায়নি। আপনার ট্রানজেকশন আইডি দিয়ে অফিসে যোগাযোগ করুন।",
+        title_suffix: "— মাসিক দান",
+        paid_on: "পরিশোধ",
+        bdt_on: "টাকা —",
+        not_due: "এখনো দেয় হয়নি",
+      }
+    };
+
+    let LANG = 'en';
+    function t(key) { return I18N[LANG][key] || I18N.en[key] || key; }
+
+    function setLang(lang) {
+      LANG = lang;
+      document.documentElement.lang = lang;
+      document.documentElement.classList.toggle('bn', lang === 'bn');
+      $("langBtn").textContent = t("lang_button");
+
+      // Update all data-i18n elements
+      document.querySelectorAll("[data-i18n]").forEach(el => {
+        el.textContent = t(el.dataset.i18n);
+      });
+      // Update placeholders
+      document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+        el.placeholder = t(el.dataset.i18nPlaceholder);
+      });
+
+      // Re-render dynamic content if data is loaded
+      if (record) renderRecord();
+      if (members.length) renderMembers();
+      if (donations.length) renderDonations();
+      if ($("adminWrap") && !$("adminWrap").hidden) loadStats();
+
+      localStorage.setItem("lang", lang);
+    }
+
+    /* ============================================================
+       CONFIG
+       ============================================================ */
+    const SUPABASE_URL = "https://ocfdnzokcbdzpnmxahtp.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jZmRuem9rY2JkenBubXhhaHRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2NDA3MzIsImV4cCI6MjEwMjIxNjczMn0.WeVPB0Q0rqH2roewdG44-eDxs-X-gmw55bxK9hhFdqE";
+    const FN = SUPABASE_URL + "/functions/v1";
+
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: false, autoRefreshToken: true }
+    });
+
+    /* ---------- helpers ---------- */
+    const $ = id => document.getElementById(id);
+    const money = n => Number(n || 0).toLocaleString("en-BD", { maximumFractionDigits: 0 });
+    const monthLabel = ym => { const [y, m] = ym.split("-"); return t("months")[+m - 1] + " " + y; };
+    const fmtDate = d => d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+
+    if (window.Capacitor) {
+      if ($("adminTabBtn")) $("adminTabBtn").style.display = "none";
+    }
+
+    function show(el, text, kind) {
+      el.textContent = text; el.className = "msg " + kind; el.hidden = false;
+    }
+    function hide(el) { el.hidden = true; }
+    function busy(btn, on, label) {
+      btn.disabled = on;
+      if (on) { btn.dataset.label = btn.textContent; btn.innerHTML = '<span class="spin"></span>' + (label || t("busy_lookup")); }
+      else { btn.textContent = btn.dataset.label || label; }
+    }
+    async function callFn(name, body) {
+      const res = await fetch(FN + "/" + name, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": SUPABASE_ANON_KEY },
+        body: JSON.stringify(body)
+      });
+      let data = {};
+      try { data = await res.json(); } catch { data = {}; }
+      if (!res.ok) throw new Error(data.error || ("Request failed (" + res.status + ")"));
+      return data;
+    }
+    function exportXlsx(header, dataRows, filename) {
+      const ws = XLSX.utils.aoa_to_sheet([header, ...dataRows]);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+      XLSX.writeFile(wb, filename);
+    }
+
+    function exportPdf(header, dataRows, filename) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF('landscape');
+      doc.autoTable({
+        head: [header],
+        body: dataRows,
+        theme: 'grid',
+        styles: { font: 'helvetica' }
+      });
+      doc.save(filename);
+    }
+
+    /* ============================================================
+       LANGUAGE TOGGLE
+       ============================================================ */
+    $("langBtn").onclick = () => setLang(LANG === 'en' ? 'bn' : 'en');
+
+    /* ============================================================
+       VIEW SWITCH
+       ============================================================ */
+    document.querySelectorAll(".switch button").forEach(b => {
+      b.onclick = () => {
+        document.querySelectorAll(".switch button").forEach(x => x.setAttribute("aria-selected", x === b));
+        $("view-donate").classList.toggle("on", b.dataset.view === "donate");
+        $("view-admin").classList.toggle("on", b.dataset.view === "admin");
+        window.scrollTo(0, 0);
+      };
+    });
+
+    /* ============================================================
+       PAYMENT RETURN BANNER
+       ============================================================ */
+    (function () {
+      const p = new URLSearchParams(location.search);
+      const status = p.get("payment");
+      if (!status) return;
+      const tran = p.get("tran_id") || "";
+      const map = {
+        success: ["ok", "pay_success"],
+        fail: ["err", "pay_fail"],
+        cancel: ["info", "pay_cancel"],
+        pending: ["info", "pay_pending"],
+        error: ["err", "pay_error"]
+      };
+      const [kind, key] = map[status] || map.error;
+      const div = document.createElement("div");
+      div.className = "msg " + kind;
+      div.textContent = t(key) + (tran ? "  Transaction: " + tran : "");
+      $("payResult").appendChild(div);
+      history.replaceState({}, "", location.pathname);
+    })();
+
+    /* ============================================================
+       DONATE
+       ============================================================ */
+    let record = null, viewYear = new Date().getFullYear(), chosenMonths = [];
+
+    $("findBtn").onclick = findMember;
+    $("mCode").addEventListener("keydown", e => { if (e.key === "Enter") findMember(); });
+    $("mPhone").addEventListener("keydown", e => { if (e.key === "Enter") findMember(); });
+
+    async function findMember() {
+      hide($("findErr"));
+      const code = $("mCode").value.trim();
+      const phone = $("mPhone").value.trim();
+      if (!code || !phone) { show($("findErr"), t("err_both_fields"), "err"); return; }
+      busy($("findBtn"), true, t("busy_lookup"));
+      try {
+        record = await callFn("member-lookup", { member_code: code, phone, year: viewYear });
+        renderRecord();
+      } catch (e) {
+        show($("findErr"), e.message, "err");
+        $("recordPanel").hidden = true;
+      } finally { busy($("findBtn"), false, t("btn_find")); }
+    }
+
+    async function reloadYear() {
+      try {
+        record = await callFn("member-lookup", {
+          member_code: $("mCode").value.trim(), phone: $("mPhone").value.trim(), year: viewYear
+        });
+        renderRecord();
+      } catch (e) { show($("findErr"), e.message, "err"); }
+    }
+    $("yPrev").onclick = () => { viewYear--; reloadYear(); };
+    $("yNext").onclick = () => { viewYear++; reloadYear(); };
+
+    function renderRecord() {
+      const m = record.member;
+      $("recordPanel").hidden = false;
+      $("findPanel").hidden = true;
+      $("rName").textContent = m.full_name;
+      $("rCode").textContent = m.member_code;
+      $("rSince").textContent = fmtDate(m.join_date);
+      $("rPaid").textContent = money(record.total_paid_this_year);
+      $("yLabel").textContent = record.year;
+
+      const now = new Date();
+      const thisYm = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
+      const MONTHS = t("months");
+
+      const strip = $("strip"); strip.innerHTML = "";
+      const openMonths = [];
+      record.months.forEach((mo, i) => {
+        const future = mo.month > thisYm;
+        const open = mo.status !== "SUCCESS";
+        if (open) openMonths.push(mo);
+
+        const cell = document.createElement(open ? "button" : "div");
+        cell.className = "cell"
+          + (mo.status === "SUCCESS" ? " paid" : "")
+          + (mo.status === "PENDING" ? " pending" : "")
+          + (mo.status === "FAILED" || mo.status === "CANCELLED" ? " failed" : "")
+          + (open ? " selectable" : "")
+          + (future ? " future" : "");
+        cell.innerHTML = '<div class="m">' + MONTHS[i] + '</div><div class="dot"></div>';
+        cell.title = MONTHS[i] + " " + record.year + " — " +
+          (mo.status === "SUCCESS" ? t("paid_on") + " " + money(mo.amount) + " " + t("bdt_on") + " " + fmtDate(mo.paid_at)
+            : future ? t("not_due") : mo.status.toLowerCase());
+        if (open) {
+          cell.dataset.month = mo.month;
+          cell.onclick = () => toggleMonth(mo.month);
+        }
+        strip.appendChild(cell);
+      });
+
+      const sel = $("payMonth");
+      if (openMonths.length === 0) {
+        sel.value = t("no_outstanding") + ' ' + record.year;
+        $("payBtn").disabled = true;
+      } else {
+        $("payBtn").disabled = false;
+        updateMonthSelectionUI();
+      }
+      updateAmountUI();
+    }
+
+    function updateAmountUI() {
+      const m = record?.member;
+      if (!m) return;
+      $("payAmount").value = m.monthly_amount * Math.max(1, chosenMonths.length);
+    }
+
+    function toggleMonth(ym) {
+      if (chosenMonths.includes(ym)) {
+        chosenMonths = chosenMonths.filter(m => m !== ym);
+      } else {
+        chosenMonths.push(ym);
+      }
+      chosenMonths.sort();
+      updateMonthSelectionUI();
+      updateAmountUI();
+    }
+
+    function updateMonthSelectionUI() {
+      const sel = $("payMonth");
+      if (chosenMonths.length === 0) {
+        sel.value = t("no_months");
+      } else if (chosenMonths.length === 1) {
+        sel.value = monthLabel(chosenMonths[0]);
+      } else {
+        sel.value = chosenMonths.length + " " + t("months_selected");
+      }
+      document.querySelectorAll("#strip .cell").forEach(c =>
+        c.classList.toggle("chosen", chosenMonths.includes(c.dataset.month)));
+    }
+
+    $("payBtn").onclick = async () => {
+      hide($("payErr"));
+      const amount = Number($("payAmount").value);
+      if (chosenMonths.length === 0) { show($("payErr"), t("err_select_month"), "err"); return; }
+      if (!(amount > 0)) { show($("payErr"), t("err_amount_zero"), "err"); return; }
+      busy($("payBtn"), true, t("busy_gateway"));
+      try {
+        const r = await callFn("payment-init", {
+          member_code: $("mCode").value.trim(),
+          phone: $("mPhone").value.trim(),
+          amount, donation_months: chosenMonths
+        });
+        location.href = r.gateway_url;
+      } catch (e) {
+        show($("payErr"), e.message, "err");
+        busy($("payBtn"), false, t("btn_pay"));
+      }
+    };
+
+    /* ============================================================
+       ADMIN
+       ============================================================ */
+    let members = [], donations = [];
+
+    $("loginBtn").onclick = doLogin;
+    $("aPass").addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
+
+    async function doLogin() {
+      hide($("loginErr"));
+      const email = $("aEmail").value.trim(), password = $("aPass").value;
+      if (!email || !password) { show($("loginErr"), t("err_email_pass"), "err"); return; }
+      busy($("loginBtn"), true, t("busy_signin"));
+      try {
+        const { data, error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        const { data: adm } = await sb.from("app_admins").select("email, full_name, role").eq("user_id", data.user.id).maybeSingle();
+        if (!adm) {
+          await sb.auth.signOut();
+          throw new Error(t("err_not_admin"));
+        }
+        $("sessWho").textContent = (adm.full_name || adm.email || email) + " · " + adm.role;
+        $("loginWrap").hidden = true;
+        $("adminWrap").hidden = false;
+        $("aPass").value = "";
+        await loadAll();
+      } catch (e) {
+        show($("loginErr"), e.message || t("busy_signin"), "err");
+      } finally { busy($("loginBtn"), false, t("btn_signin")); }
+    }
+
+    $("logoutBtn").onclick = async () => {
+      await sb.auth.signOut();
+      $("adminWrap").hidden = true; $("loginWrap").hidden = false;
+      members = []; donations = [];
+    };
+    $("refreshBtn").onclick = loadAll;
+
+    document.querySelectorAll(".tabs button").forEach(b => {
+      b.onclick = () => {
+        document.querySelectorAll(".tabs button").forEach(x => x.setAttribute("aria-selected", x === b));
+        ["members", "donations", "add", "settings"].forEach(t => $("tab-" + t).hidden = (t !== b.dataset.tab));
+      };
+    });
+
+    async function loadAll() {
+      await Promise.all([loadStats(), loadMembers(), loadDonations(), loadSettings()]);
+    }
+
+    async function loadStats() {
+      const { data, error } = await sb.rpc("dashboard_stats");
+      if (error) return;
+      const s = data || {};
+      $("stats").innerHTML = [
+        [money(s.this_month_collected), t("stat_collected_month")],
+        [s.this_month_paid_count ?? 0, t("stat_paid_month")],
+        [money(s.total_collected), t("stat_collected_all")],
+        [s.active_members ?? 0, t("stat_active_members")],
+        [s.pending_count ?? 0, t("stat_pending")],
+        [s.failed_count ?? 0, t("stat_failed")]
+      ].map(([n, l]) => '<div class="stat"><div class="n">' + n + '</div><div class="l">' + l + '</div></div>').join("");
+    }
+
+    async function loadMembers() {
+      const { data, error } = await sb.from("v_member_donation_summary").select("*").order("member_code");
+      if (error) { $("membersBody").innerHTML = '<tr><td colspan="9"><div class="empty">' + error.message + '</div></td></tr>'; return; }
+      members = data || [];
+      renderMembers();
+    }
+
+    function getFilteredMembers() {
+      const q = $("mSearch").value.trim().toLowerCase();
+      const st = $("mStatus").value;
+      return members.filter(m =>
+        (!st || m.status === st) &&
+        (!q || [m.full_name, m.member_code, m.phone].some(v => String(v || "").toLowerCase().includes(q)))
+      );
+    }
+
+    function renderMembers() {
+      const rows = getFilteredMembers();
+      const tb = $("membersBody");
+      if (!rows.length) { tb.innerHTML = '<tr><td colspan="9"><div class="empty">' + t("empty_members") + '</div></td></tr>'; return; }
+      tb.innerHTML = rows.map(m => `
+    <tr>
+      <td class="num">${m.member_code}</td>
+      <td>${esc(m.full_name)}</td>
+      <td class="num">${esc(m.phone || "")}</td>
+      <td class="num">${money(m.monthly_amount)}</td>
+      <td class="num">${money(m.total_donated)}</td>
+      <td class="num">${m.months_paid || 0}</td>
+      <td class="num">${m.last_month_paid ? monthLabel(String(m.last_month_paid).slice(0, 7)) : "—"}</td>
+      <td><span class="tag ${m.status}">${m.status}</span></td>
+      <td><button class="btn ghost small" data-toggle="${m.member_id}" data-status="${m.status}">${m.status === "active" ? t("btn_deactivate") : t("btn_activate")}</button></td>
+    </tr>`).join("");
+      tb.querySelectorAll("[data-toggle]").forEach(b => {
+        b.onclick = async () => {
+          const next = b.dataset.status === "active" ? "inactive" : "active";
+          b.disabled = true;
+          const { error } = await sb.from("members").update({ status: next }).eq("id", b.dataset.toggle);
+          if (error) { alert(error.message); b.disabled = false; return; }
+          await loadMembers(); await loadStats();
+        };
+      });
+    }
+    $("mSearch").oninput = renderMembers;
+    $("mStatus").onchange = renderMembers;
+
+    function getMembersExportData() {
+      const header = [t("th_code"), t("th_name"), t("th_phone"), "Email", t("th_monthly"), t("th_total_given"), t("th_months_paid"), t("th_last_paid"), t("th_status")];
+      const rows = getFilteredMembers().map(m => [m.member_code, m.full_name, m.phone, m.email, m.monthly_amount, m.total_donated, m.months_paid, m.last_month_paid, m.status]);
+      return { header, rows };
+    }
+
+    $("mExportXlsx").onclick = () => {
+      const { header, rows } = getMembersExportData();
+      exportXlsx(header, rows, "members.xlsx");
+    };
+    $("mExportPdf").onclick = () => {
+      const { header, rows } = getMembersExportData();
+      exportPdf(header, rows, "members.pdf");
+    };
+
+    async function loadDonations() {
+      const { data, error } = await sb
+        .from("donations")
+        .select("id,tran_id,amount,store_amount,donation_month,status,card_type,paid_at,created_at,members(member_code,full_name)")
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) { $("donationsBody").innerHTML = '<tr><td colspan="8"><div class="empty">' + error.message + '</div></td></tr>'; return; }
+      donations = data || [];
+      renderDonations();
+    }
+
+    function getFilteredDonations() {
+      const st = $("dStatus").value, mo = $("dMonth").value;
+      return donations.filter(d =>
+        (!st || d.status === st) && (!mo || String(d.donation_month).slice(0, 7) === mo));
+    }
+
+    function renderDonations() {
+      const rows = getFilteredDonations();
+      const tb = $("donationsBody");
+      if (!rows.length) { tb.innerHTML = '<tr><td colspan="8"><div class="empty">' + t("empty_donations") + '</div></td></tr>'; return; }
+      tb.innerHTML = rows.map(d => `
+    <tr>
+      <td class="num">${fmtDate(d.paid_at || d.created_at)}</td>
+      <td>${esc(d.members?.full_name || "—")}<br><span class="num" style="font-size:11px;color:var(--text-muted)">${d.members?.member_code || ""}</span></td>
+      <td class="num">${monthLabel(String(d.donation_month).slice(0, 7))}</td>
+      <td class="num">${money(d.amount)}</td>
+      <td class="num">${d.store_amount ? money(d.store_amount) : "—"}</td>
+      <td>${esc(d.card_type || "—")}</td>
+      <td class="num" style="font-size:11px">${esc(d.tran_id)}</td>
+      <td><span class="tag ${d.status}">${d.status}</span></td>
+    </tr>`).join("");
+    }
+    $("dStatus").onchange = renderDonations;
+    $("dMonth").onchange = renderDonations;
+    $("dClear").onclick = () => { $("dStatus").value = ""; $("dMonth").value = ""; renderDonations(); };
+
+    function getDonationsExportData() {
+      const header = [t("th_date"), t("th_code"), t("th_member"), t("th_for_month"), t("th_amount"), t("th_net"), t("th_method"), t("th_transaction"), t("th_status")];
+      const rows = getFilteredDonations().map(d => [d.paid_at || d.created_at, d.members?.member_code, d.members?.full_name, String(d.donation_month).slice(0, 7), d.amount, d.store_amount, d.card_type, d.tran_id, d.status]);
+      return { header, rows };
+    }
+
+    $("dExportXlsx").onclick = () => {
+      const { header, rows } = getDonationsExportData();
+      exportXlsx(header, rows, "donations.xlsx");
+    };
+    $("dExportPdf").onclick = () => {
+      const { header, rows } = getDonationsExportData();
+      exportPdf(header, rows, "donations.pdf");
+    };
+
+    $("addBtn").onclick = async () => {
+      hide($("addOk")); hide($("addErr"));
+      const full_name = $("nName").value.trim(), phone = $("nPhone").value.trim();
+      const customCode = $("nCode").value.trim();
+      if (!full_name || !phone) { show($("addErr"), t("err_name_phone"), "err"); return; }
+      busy($("addBtn"), true, t("busy_adding"));
+      const { data: u } = await sb.auth.getUser();
+
+      const insertPayload = {
+        full_name, phone,
+        email: $("nEmail").value.trim() || null,
+        address: $("nAddress").value.trim() || null,
+        notes: $("nNotes").value.trim() || null,
+        monthly_amount: Number($("nAmount").value) || 500,
+        created_by: u?.user?.id || null
+      };
+      if (customCode) {
+        insertPayload.member_code = customCode;
+      }
+
+      const { data, error } = await sb.from("members").insert(insertPayload).select("member_code, full_name").single();
+      busy($("addBtn"), false, t("btn_add_member"));
+      if (error) { show($("addErr"), error.message, "err"); return; }
+      show($("addOk"), data.full_name + " added. Member code: " + data.member_code, "ok");
+      ["nName", "nPhone", "nCode", "nEmail", "nAddress", "nNotes"].forEach(id => $(id).value = "");
+      await loadMembers(); await loadStats();
+    };
+
+    $("downloadSampleBtn").onclick = () => {
+      const header = ["Name", "Phone", "Code", "Amount", "Email", "Address", "Notes"];
+      const row1 = ["Abdullah Al Mamun", "01700000001", "U13-001", 500, "mamun@example.com", "Dhaka", "Note"];
+      const row2 = ["Fatima Begum", "01700000002", "", 1000, "", "", ""];
+      exportXlsx(header, [row1, row2], "member_upload_sample.xlsx");
+    };
+
+    $("bulkBtn").onclick = async () => {
+      hide($("addOk")); hide($("addErr"));
+      const fileInput = $("nBulkFile");
+      if (!fileInput.files || !fileInput.files[0]) {
+        show($("addErr"), t("label_bulk_file"), "err");
+        return;
+      }
+      busy($("bulkBtn"), true, t("busy_uploading"));
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+
+      reader.onload = async (e) => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const rows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+          if (!rows || rows.length === 0) {
+            throw new Error("The Excel file is empty.");
+          }
+
+          const { data: u } = await sb.auth.getUser();
+          const payloads = rows.map(r => {
+            const getCol = (names) => {
+              for (const n of names) {
+                if (r[n] !== undefined && String(r[n]).trim() !== "") return String(r[n]).trim();
+              }
+              return null;
+            };
+            const name = getCol(["Name", "name", "Full name", "full_name"]);
+            const phone = getCol(["Phone", "phone", "Mobile", "mobile"]);
+            if (!name || !phone) throw new Error("Row missing Name or Phone: " + JSON.stringify(r));
+
+            const payload = {
+              full_name: name,
+              phone: phone,
+              email: getCol(["Email", "email"]) || null,
+              address: getCol(["Address", "address"]) || null,
+              notes: getCol(["Notes", "notes", "Note", "note"]) || null,
+              monthly_amount: Number(getCol(["Amount", "amount", "Monthly", "monthly_amount"])) || 500,
+              created_by: u?.user?.id || null
+            };
+            const code = getCol(["Code", "code", "Member code", "member_code"]);
+            if (code) payload.member_code = code;
+            return payload;
+          });
+
+          const { error } = await sb.from("members").insert(payloads);
+          if (error) throw new Error(error.message);
+
+          show($("addOk"), payloads.length + t("msg_bulk_success"), "ok");
+          fileInput.value = "";
+          await loadMembers(); await loadStats();
+        } catch (err) {
+          show($("addErr"), "Bulk Upload Error: " + err.message, "err");
+        } finally {
+          busy($("bulkBtn"), false, t("btn_bulk_upload"));
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    };
+
+    async function loadSettings() {
+      const { data } = await sb.from("foundation_settings").select("*").eq("id", 1).maybeSingle();
+      if (!data) return;
+      $("sName").value = data.foundation_name || "";
+      $("sAmount").value = data.default_monthly_amount || 500;
+      $("sEmail").value = data.foundation_email || "";
+      $("sPhone").value = data.foundation_phone || "";
+      $("sAddress").value = data.foundation_address || "";
+      applyBrand(data.foundation_name);
+    }
+    $("setBtn").onclick = async () => {
+      hide($("setOk")); hide($("setErr"));
+      busy($("setBtn"), true, t("busy_saving"));
+      const { error } = await sb.from("foundation_settings").update({
+        foundation_name: $("sName").value.trim() || "Foundation",
+        default_monthly_amount: Number($("sAmount").value) || 500,
+        foundation_email: $("sEmail").value.trim() || null,
+        foundation_phone: $("sPhone").value.trim() || null,
+        foundation_address: $("sAddress").value.trim() || null
+      }).eq("id", 1);
+      busy($("setBtn"), false, t("btn_save"));
+      if (error) { show($("setErr"), error.message, "err"); return; }
+      show($("setOk"), t("msg_settings_saved"), "ok");
+      applyBrand($("sName").value.trim());
+    };
+
+    function applyBrand(name) {
+      if (!name) return;
+      $("fname").textContent = name;
+      $("glyph").textContent = name.trim().charAt(0).toUpperCase();
+      document.title = name + " " + t("title_suffix");
+    }
+
+    function esc(s) {
+      return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
+    /* ============================================================
+       INIT
+       ============================================================ */
+    (async () => {
+      // Restore saved language
+      const saved = localStorage.getItem("lang");
+      if (saved && saved !== LANG) setLang(saved);
+
+      // Load branding
+      try {
+        const { data } = await sb.from("foundation_settings").select("foundation_name").eq("id", 1).maybeSingle();
+        if (data?.foundation_name) applyBrand(data.foundation_name);
+      } catch { }
+    })();
+  </script>
+</body>
+
+</html>

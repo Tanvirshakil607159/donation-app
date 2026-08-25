@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Foundation Donations</string>
+    <string name="title_activity_main">Foundation Donations</string>
+    <string name="package_name">com.foundation.donations</string>
+    <string name="custom_url_scheme">com.foundation.donations</string>
+</resources>

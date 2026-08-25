@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fix Pending Payments</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface2: #242836;
+  --border: #2e3345;
+  --text: #e4e6f0;
+  --text2: #9198b0;
+  --green: #34d399;
+  --green-bg: rgba(52,211,153,0.1);
+  --amber: #fbbf24;
+  --amber-bg: rgba(251,191,36,0.1);
+  --red: #f87171;
+  --red-bg: rgba(248,113,113,0.1);
+  --blue: #60a5fa;
+  --blue-bg: rgba(96,165,250,0.1);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Roboto', sans-serif; font-size: 15px; line-height: 1.6; }
+.mono { font-family: 'Roboto Mono', monospace; font-size: 13px; }
+.container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+h1 { font-size: 28px; font-weight: 500; margin-bottom: 4px; }
+h2 { font-size: 20px; font-weight: 500; margin-bottom: 16px; color: var(--text); }
+.sub { color: var(--text2); font-size: 14px; margin-bottom: 32px; }
+.login-box { max-width: 400px; margin: 80px auto; }
+.field { margin-bottom: 16px; }
+.field label { display: block; font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+.field input { width: 100%; font: inherit; font-size: 15px; color: var(--text); background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; outline: none; transition: border-color 0.2s; }
+.field input:focus { border-color: var(--blue); }
+.btn { cursor: pointer; font: inherit; font-weight: 500; font-size: 14px; border: none; border-radius: 8px; padding: 10px 20px; transition: all 0.2s; }
+.btn-primary { background: var(--blue); color: #000; }
+.btn-primary:hover { background: #7db8fc; }
+.btn-green { background: var(--green); color: #000; font-size: 12px; padding: 6px 14px; }
+.btn-green:hover { background: #5ae0ac; }
+.btn-red { background: var(--red); color: #000; font-size: 12px; padding: 6px 14px; }
+.btn-red:hover { background: #fca5a5; }
+.btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text2); font-size: 12px; padding: 6px 14px; }
+.btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.msg { padding: 12px 16px; border-radius: 8px; font-size: 14px; margin-bottom: 16px; font-weight: 500; }
+.msg.err { background: var(--red-bg); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
+.msg.ok { background: var(--green-bg); color: var(--green); border: 1px solid rgba(52,211,153,0.2); }
+.msg.info { background: var(--amber-bg); color: var(--amber); border: 1px solid rgba(251,191,36,0.2); }
+.msg[hidden] { display: none; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+.card-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.card-title { font-size: 16px; font-weight: 500; }
+.card-meta { font-size: 13px; color: var(--text2); }
+.tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+.tag.PENDING { background: var(--amber-bg); color: var(--amber); }
+.tag.SUCCESS { background: var(--green-bg); color: var(--green); }
+.tag.FAILED, .tag.CANCELLED { background: var(--red-bg); color: var(--red); }
+.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.info-item label { display: block; font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+.info-item .val { font-family: 'Roboto Mono', monospace; font-size: 14px; color: var(--text); }
+.log-entry { background: var(--surface2); border-radius: 8px; padding: 12px; margin-top: 8px; font-size: 13px; }
+.log-entry .event { font-weight: 700; margin-bottom: 4px; }
+.log-entry .event.IPN { color: var(--blue); }
+.log-entry .event.INIT { color: var(--text2); }
+.log-entry .event.VALIDATE { color: var(--green); }
+.log-entry .event.VALIDATE_ERROR { color: var(--red); }
+.log-entry .event.REDIRECT_SUCCESS { color: var(--green); }
+.log-entry pre { font-family: 'Roboto Mono', monospace; font-size: 11px; color: var(--text2); white-space: pre-wrap; word-break: break-all; max-height: 120px; overflow-y: auto; margin-top: 6px; background: var(--bg); padding: 8px; border-radius: 4px; }
+.actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+.summary-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1px; background: var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+.summary-item { background: var(--surface); padding: 16px 20px; text-align: center; }
+.summary-item .n { font-family: 'Roboto Mono', monospace; font-size: 28px; font-weight: 700; }
+.summary-item .l { font-size: 12px; color: var(--text2); margin-top: 4px; }
+.diagnosis { margin-top: 12px; padding: 12px 16px; border-radius: 8px; font-size: 13px; }
+.diagnosis.good { background: var(--green-bg); color: var(--green); border: 1px solid rgba(52,211,153,0.15); }
+.diagnosis.bad { background: var(--red-bg); color: var(--red); border: 1px solid rgba(248,113,113,0.15); }
+.diagnosis.warn { background: var(--amber-bg); color: var(--amber); border: 1px solid rgba(251,191,36,0.15); }
+#app { display: none; }
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.2); border-top-color: #fff; border-radius: 50%; animation: sp 0.6s linear infinite; vertical-align: -2px; margin-right: 6px; }
+@keyframes sp { to { transform: rotate(360deg); } }
+.empty { text-align: center; padding: 48px 20px; color: var(--text2); }
+.empty .icon { font-size: 48px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div id="loginSection">
+  <div class="login-box">
+    <h1>Fix Pending Payments</h1>
+    <p class="sub">Admin tool to diagnose and resolve stuck PENDING donations that users have already paid.</p>
+    <div class="card">
+      <div class="msg err" id="loginErr" hidden></div>
+      <div class="field">
+        <label>Admin email</label>
+        <input id="email" type="email" autocomplete="username" />
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input id="pass" type="password" autocomplete="current-password" />
+      </div>
+      <button class="btn btn-primary" id="loginBtn" style="width:100%;margin-top:8px">Sign in</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:8px">
+    <h1>Fix Pending Payments</h1>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" id="refreshBtn">Refresh</button>
+      <button class="btn btn-green" id="fixAllBtn" style="display:none">Fix all confirmed</button>
+      <button class="btn btn-ghost" id="logoutBtn">Sign out</button>
+    </div>
+  </div>
+  <p class="sub" id="sessInfo"></p>
+
+  <div class="msg ok" id="appOk" hidden></div>
+  <div class="msg err" id="appErr" hidden></div>
+
+  <div class="summary-bar" id="summaryBar"></div>
+
+  <div class="msg info" id="diagnosisMsg" hidden></div>
+
+  <h2>Pending Donations</h2>
+  <div id="pendingList"></div>
+</div>
+
+</div>
+
+<script>
+const SUPABASE_URL = "https://ocfdnzokcbdzpnmxahtp.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jZmRuem9rY2JkenBubXhhaHRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2NDA3MzIsImV4cCI6MjEwMjIxNjczMn0.WeVPB0Q0rqH2roewdG44-eDxs-X-gmw55bxK9hhFdqE";
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: false }
+});
+
+const $ = id => document.getElementById(id);
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const money = n => Number(n || 0).toLocaleString("en-BD", {maximumFractionDigits:0});
+const monthLabel = ym => { const [y,m] = ym.split("-"); return MONTHS[+m-1] + " " + y; };
+const fmtDate = d => d ? new Date(d).toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}) + " " + new Date(d).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}) : "\u2014";
+function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+function showMsg(el, text, kind) { el.textContent = text; el.className = "msg " + kind; el.hidden = false; }
+function hideMsg(el) { el.hidden = true; }
+
+$("loginBtn").onclick = login;
+$("pass").addEventListener("keydown", e => { if(e.key === "Enter") login(); });
+
+async function login() {
+  hideMsg($("loginErr"));
+  const email = $("email").value.trim(), password = $("pass").value;
+  if(!email || !password) { showMsg($("loginErr"), "Enter email and password.", "err"); return; }
+  $("loginBtn").disabled = true;
+  $("loginBtn").innerHTML = '<span class="spinner"></span>Signing in...';
+  try {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if(error) throw error;
+    const { data: adm } = await sb.from("app_admins").select("email, full_name, role").eq("user_id", data.user.id).maybeSingle();
+    if(!adm) {
+      await sb.auth.signOut();
+      throw new Error("This account is not an administrator.");
+    }
+    $("sessInfo").textContent = "Signed in as " + (adm.full_name || email) + " \u00b7 " + adm.role;
+    $("loginSection").style.display = "none";
+    $("app").style.display = "block";
+    await loadPending();
+  } catch(e) {
+    showMsg($("loginErr"), e.message, "err");
+  } finally {
+    $("loginBtn").disabled = false;
+    $("loginBtn").textContent = "Sign in";
+  }
+}
+
+$("logoutBtn").onclick = async () => {
+  await sb.auth.signOut();
+  $("loginSection").style.display = "";
+  $("app").style.display = "none";
+};
+$("refreshBtn").onclick = loadPending;
+
+let pendingDonations = [];
+let logsByTranId = {};
+
+async function loadPending() {
+  hideMsg($("appOk")); hideMsg($("appErr"));
+  $("pendingList").innerHTML = '<div class="empty"><span class="spinner"></span> Loading pending donations...</div>';
+
+  try {
+    const { data: pending, error: pErr } = await sb
+      .from("donations")
+      .select("id,tran_id,amount,donation_month,status,created_at,updated_at,member_id,members(member_code,full_name,phone)")
+      .eq("status", "PENDING")
+      .order("created_at", { ascending: false });
+
+    if(pErr) throw pErr;
+    pendingDonations = pending || [];
+
+    logsByTranId = {};
+    if(pendingDonations.length > 0) {
+      const tranIds = [...new Set(pendingDonations.map(d => d.tran_id))];
+      const { data: logs, error: lErr } = await sb
+        .from("sslcommerz_logs")
+        .select("tran_id,event_type,payload,created_at")
+        .in("tran_id", tranIds)
+        .order("created_at", { ascending: true });
+
+      if(!lErr && logs) {
+        logs.forEach(l => {
+          if(!logsByTranId[l.tran_id]) logsByTranId[l.tran_id] = [];
+          logsByTranId[l.tran_id].push(l);
+        });
+      }
+    }
+
+    const { count: successCount } = await sb.from("donations").select("id", { count: "exact", head: true }).eq("status", "SUCCESS");
+    const { count: failedCount } = await sb.from("donations").select("id", { count: "exact", head: true }).eq("status", "FAILED");
+    const { count: cancelledCount } = await sb.from("donations").select("id", { count: "exact", head: true }).eq("status", "CANCELLED");
+
+    renderSummary(pendingDonations.length, successCount || 0, failedCount || 0, cancelledCount || 0);
+    renderPending();
+    renderDiagnosis();
+
+  } catch(e) {
+    $("pendingList").innerHTML = '<div class="empty">Error: ' + esc(e.message) + '</div>';
+  }
+}
+
+function renderSummary(pending, success, failed, cancelled) {
+  $("summaryBar").innerHTML = [
+    ['<span style="color:var(--amber)">' + pending + '</span>', "Pending"],
+    ['<span style="color:var(--green)">' + success + '</span>', "Successful"],
+    ['<span style="color:var(--red)">' + failed + '</span>', "Failed"],
+    ['<span style="color:var(--text2)">' + cancelled + '</span>', "Cancelled"],
+  ].map(function(x) { return '<div class="summary-item"><div class="n">' + x[0] + '</div><div class="l">' + x[1] + '</div></div>'; }).join("");
+}
+
+function diagnoseTranId(tranId) {
+  var logs = logsByTranId[tranId] || [];
+  var events = logs.map(function(l) { return l.event_type; });
+
+  if(logs.length === 0) {
+    return { level: "bad", text: "No logs at all. Payment gateway session may never have been created, or INIT failed." };
+  }
+
+  var hasInit = events.indexOf("INIT") >= 0;
+  var hasInitError = events.indexOf("INIT_ERROR") >= 0;
+  var hasIPN = events.indexOf("IPN") >= 0;
+  var hasValidate = events.indexOf("VALIDATE") >= 0;
+  var hasValidateError = events.indexOf("VALIDATE_ERROR") >= 0;
+  var hasRedirectSuccess = events.indexOf("REDIRECT_SUCCESS") >= 0;
+
+  if(hasInitError) {
+    return { level: "bad", text: "INIT_ERROR: Gateway session failed to create. Check store credentials." };
+  }
+  if(hasInit && !hasIPN && !hasRedirectSuccess) {
+    return { level: "warn", text: "Session created (INIT) but no IPN received. User may have abandoned payment, OR the IPN URL is not registered in SSLCommerz merchant panel." };
+  }
+  if(hasIPN && hasValidateError) {
+    return { level: "bad", text: "IPN received but validation FAILED. Store credentials may be wrong, or SSLCOMMERZ_SANDBOX setting does not match." };
+  }
+  if(hasIPN && hasValidate) {
+    return { level: "good", text: "IPN received AND validation passed. This should be SUCCESS! The DB update may have failed. Safe to mark as paid." };
+  }
+  if(hasIPN && !hasValidate && !hasValidateError) {
+    return { level: "warn", text: "IPN received but no validation attempt logged. The validation API call may have timed out or crashed." };
+  }
+
+  return { level: "warn", text: "Unclear state. Events: " + events.join(", ") };
+}
+
+function renderDiagnosis() {
+  if(pendingDonations.length === 0) {
+    hideMsg($("diagnosisMsg"));
+    return;
+  }
+
+  var tranIds = [...new Set(pendingDonations.map(function(d) { return d.tran_id; }))];
+  var noIPN = 0, validateError = 0, validatedButStuck = 0;
+  tranIds.forEach(function(tid) {
+    var d = diagnoseTranId(tid);
+    if(d.text.indexOf("no IPN") >= 0) noIPN++;
+    if(d.text.indexOf("validation FAILED") >= 0) validateError++;
+    if(d.text.indexOf("should be SUCCESS") >= 0) validatedButStuck++;
+  });
+
+  var diagnosis = "Found " + pendingDonations.length + " pending donation(s) across " + tranIds.length + " transaction(s). ";
+  if(noIPN > 0) diagnosis += noIPN + " transaction(s) have no IPN (likely IPN URL not registered in SSLCommerz). ";
+  if(validateError > 0) diagnosis += validateError + " transaction(s) have validation errors (check store credentials). ";
+  if(validatedButStuck > 0) diagnosis += validatedButStuck + " transaction(s) were validated but still PENDING (safe to fix). ";
+
+  showMsg($("diagnosisMsg"), diagnosis, "info");
+
+  $("fixAllBtn").style.display = validatedButStuck > 0 ? "" : "none";
+  $("fixAllBtn").onclick = async function() {
+    var confirmed = tranIds.filter(function(tid) { return diagnoseTranId(tid).text.indexOf("should be SUCCESS") >= 0; });
+    if(confirmed.length === 0) return;
+    if(!confirm("Mark " + confirmed.length + " validated transaction(s) as SUCCESS?")) return;
+    for(var i = 0; i < confirmed.length; i++) {
+      await markAsPaid(confirmed[i]);
+    }
+    await loadPending();
+  };
+}
+
+function renderPending() {
+  var list = $("pendingList");
+
+  if(pendingDonations.length === 0) {
+    list.innerHTML = '<div class="empty"><div class="icon">&#10004;</div><div>No pending donations. Everything is settled!</div></div>';
+    return;
+  }
+
+  var grouped = {};
+  pendingDonations.forEach(function(d) {
+    if(!grouped[d.tran_id]) grouped[d.tran_id] = [];
+    grouped[d.tran_id].push(d);
+  });
+
+  var html = "";
+  Object.keys(grouped).forEach(function(tranId) {
+    var rows = grouped[tranId];
+    var first = rows[0];
+    var logs = logsByTranId[tranId] || [];
+    var diag = diagnoseTranId(tranId);
+    var totalAmount = rows.reduce(function(s, r) { return s + Number(r.amount); }, 0);
+    var monthsStr = rows.map(function(r) { return monthLabel(String(r.donation_month).slice(0,7)); }).join(", ");
+
+    html += '<div class="card" id="card-' + esc(tranId) + '">';
+    html += '<div class="card-header"><div>';
+    html += '<div class="card-title">' + esc(first.members ? first.members.full_name : "Unknown") + ' <span style="color:var(--text2);font-size:13px">' + esc(first.members ? first.members.member_code : "") + '</span></div>';
+    html += '<div class="card-meta">Phone: ' + esc(first.members ? first.members.phone : "\u2014") + '</div>';
+    html += '</div><span class="tag PENDING">PENDING</span></div>';
+
+    html += '<div class="info-grid">';
+    html += '<div class="info-item"><label>Transaction ID</label><div class="val">' + esc(tranId) + '</div></div>';
+    html += '<div class="info-item"><label>Month(s)</label><div class="val">' + esc(monthsStr) + '</div></div>';
+    html += '<div class="info-item"><label>Total Amount</label><div class="val">' + money(totalAmount) + ' BDT</div></div>';
+    html += '<div class="info-item"><label>Created</label><div class="val">' + fmtDate(first.created_at) + '</div></div>';
+    html += '</div>';
+
+    html += '<div class="diagnosis ' + diag.level + '" style="margin-top:16px"><strong>Diagnosis:</strong> ' + esc(diag.text) + '</div>';
+
+    if(logs.length > 0) {
+      html += '<div style="margin-top:16px"><label style="display:block;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Gateway Logs (' + logs.length + ')</label>';
+      logs.forEach(function(l) {
+        html += '<div class="log-entry">';
+        html += '<div class="event ' + esc(l.event_type) + '">' + esc(l.event_type) + ' <span style="font-weight:400;color:var(--text2);font-size:11px">' + fmtDate(l.created_at) + '</span></div>';
+        if(l.payload) {
+          html += '<pre>' + esc(JSON.stringify(l.payload, null, 2).slice(0, 500)) + '</pre>';
+        }
+        html += '</div>';
+      });
+      html += '</div>';
+    } else {
+      html += '<div style="margin-top:12px;font-size:13px;color:var(--text2)">No gateway logs found for this transaction.</div>';
+    }
+
+    html += '<div class="actions">';
+    html += '<button class="btn btn-green" onclick="markAsPaidUI(\'' + esc(tranId) + '\')">Mark as Paid</button>';
+    html += '<button class="btn btn-red" onclick="markAsFailedUI(\'' + esc(tranId) + '\')">Mark as Failed</button>';
+    html += '<button class="btn btn-ghost" onclick="deletePendingUI(\'' + esc(tranId) + '\')">Delete</button>';
+    html += '</div>';
+    html += '</div>';
+  });
+
+  list.innerHTML = html;
+}
+
+async function markAsPaid(tranId) {
+  var result = await sb
+    .from("donations")
+    .update({
+      status: "SUCCESS",
+      paid_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
+    .eq("tran_id", tranId)
+    .eq("status", "PENDING");
+  if(result.error) throw result.error;
+}
+
+async function markAsPaidUI(tranId) {
+  if(!confirm("Mark transaction " + tranId + " as PAID/SUCCESS?\n\nOnly do this if you have confirmed the user actually paid (e.g. via SSLCommerz merchant panel or bank statement).")) return;
+  hideMsg($("appOk")); hideMsg($("appErr"));
+  try {
+    await markAsPaid(tranId);
+    showMsg($("appOk"), tranId + " marked as SUCCESS.", "ok");
+    await loadPending();
+  } catch(e) {
+    showMsg($("appErr"), "Failed to update: " + e.message, "err");
+  }
+}
+
+async function markAsFailedUI(tranId) {
+  if(!confirm("Mark transaction " + tranId + " as FAILED?")) return;
+  hideMsg($("appOk")); hideMsg($("appErr"));
+  try {
+    var result = await sb.from("donations").update({ status: "FAILED", updated_at: new Date().toISOString() }).eq("tran_id", tranId).eq("status", "PENDING");
+    if(result.error) throw result.error;
+    showMsg($("appOk"), tranId + " marked as FAILED.", "ok");
+    await loadPending();
+  } catch(e) {
+    showMsg($("appErr"), "Failed to update: " + e.message, "err");
+  }
+}
+
+async function deletePendingUI(tranId) {
+  if(!confirm("DELETE all PENDING rows for " + tranId + "?\n\nThis removes them from the database entirely. Use only for test/junk data.")) return;
+  hideMsg($("appOk")); hideMsg($("appErr"));
+  try {
+    var result = await sb.from("donations").delete().eq("tran_id", tranId).eq("status", "PENDING");
+    if(result.error) throw result.error;
+    showMsg($("appOk"), tranId + " deleted.", "ok");
+    await loadPending();
+  } catch(e) {
+    showMsg($("appErr"), "Failed to delete: " + e.message, "err");
+  }
+}
+</script>
+</body>
+</html>

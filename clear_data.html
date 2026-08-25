@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Clear All Data — Foundation System</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #0f1117; color: #e4e6f0; font-family: 'Roboto', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px 16px; }
+.box { max-width: 520px; width: 100%; padding: 32px; background: #1a1d27; border: 1px solid #2e3345; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+h1 { font-size: 22px; font-weight: 500; margin-bottom: 6px; }
+.sub { color: #9198b0; font-size: 14px; margin-bottom: 24px; }
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 12px; font-weight: 500; color: #9198b0; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+.field input { width: 100%; font: inherit; font-size: 15px; color: #e4e6f0; background: #242836; border: 1px solid #2e3345; border-radius: 8px; padding: 10px 14px; outline: none; }
+.field input:focus { border-color: #60a5fa; }
+.btn { cursor: pointer; font: inherit; font-weight: 600; font-size: 14px; border: none; border-radius: 8px; padding: 12px 20px; width: 100%; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.btn-red { background: #f87171; color: #000; }
+.btn-red:hover { background: #fca5a5; }
+.btn-blue { background: #60a5fa; color: #000; margin-bottom: 10px; }
+.btn-blue:hover { background: #7db8fc; }
+.btn-ghost { background: #242836; color: #e4e6f0; border: 1px solid #2e3345; padding: 10px 16px; margin-top: 8px; }
+.btn-ghost:hover { background: #2e3345; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.msg { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; font-weight: 500; }
+.msg.err { background: rgba(248,113,113,0.1); color: #f87171; border: 1px solid rgba(248,113,113,0.2); }
+.msg.ok { background: rgba(52,211,153,0.1); color: #34d399; border: 1px solid rgba(52,211,153,0.2); }
+.msg[hidden] { display: none; }
+.warn { background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.2); color: #fbbf24; padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 20px; line-height: 1.5; }
+.sql-box { background: #0f1117; border: 1px solid #2e3345; border-radius: 8px; padding: 14px; margin-top: 16px; }
+.sql-box pre { font-family: 'Roboto Mono', monospace; font-size: 13px; color: #60a5fa; white-space: pre-wrap; word-break: break-all; margin-bottom: 10px; }
+.log { font-family: 'Roboto Mono', monospace; font-size: 12px; color: #9198b0; background: #0f1117; border-radius: 8px; padding: 12px; margin-top: 14px; max-height: 220px; overflow-y: auto; white-space: pre-wrap; }
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(0,0,0,0.2); border-top-color: #000; border-radius: 50%; animation: sp 0.6s linear infinite; vertical-align: -2px; margin-right: 6px; }
+@keyframes sp { to { transform: rotate(360deg); } }
+#step2 { display: none; }
+</style>
+</head>
+<body>
+<div class="box">
+
+  <div id="step1">
+    <h1>Clear All Data</h1>
+    <p class="sub">Sign in as admin to wipe members, donations, and logs.</p>
+    <div class="msg err" id="loginErr" hidden></div>
+    <div class="field">
+      <label>Admin email</label>
+      <input id="email" type="email" autocomplete="username" />
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input id="pass" type="password" autocomplete="current-password" />
+    </div>
+    <button class="btn btn-blue" id="loginBtn">Sign in</button>
+  </div>
+
+  <div id="step2">
+    <h1>Confirm Data Wipe</h1>
+    <div class="warn">
+      This will permanently delete:<br>
+      &bull; All SSLCommerz logs<br>
+      &bull; All donation transactions<br>
+      &bull; All members<br><br>
+      Foundation settings and admin accounts will <strong>NOT</strong> be deleted.
+    </div>
+
+    <div class="msg ok" id="okMsg" hidden></div>
+    <div class="msg err" id="errMsg" hidden></div>
+
+    <button class="btn btn-red" id="wipeBtn">Delete everything</button>
+    <div class="log" id="log" hidden></div>
+
+    <div class="sql-box" id="sqlBox" style="margin-top:20px;">
+      <div style="font-size:12px;color:#9198b0;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Direct SQL Method (Bypasses RLS Restrictions)</div>
+      <p style="font-size:13px;color:#9198b0;margin-bottom:10px;">If RLS prevents deleting donations via web API, run this in Supabase SQL Editor:</p>
+      <pre id="sqlText">TRUNCATE public.sslcommerz_logs, public.donations, public.members CASCADE;</pre>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-ghost" id="copySqlBtn" style="flex:1;">📋 Copy SQL</button>
+        <a class="btn btn-ghost" href="https://supabase.com/dashboard/project/ocfdnzokcbdzpnmxahtp/sql/new" target="_blank" style="flex:1;">🔗 Open SQL Editor</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const sb = window.supabase.createClient(
+  "https://ocfdnzokcbdzpnmxahtp.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jZmRuem9rY2JkenBubXhhaHRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2NDA3MzIsImV4cCI6MjEwMjIxNjczMn0.WeVPB0Q0rqH2roewdG44-eDxs-X-gmw55bxK9hhFdqE",
+  { auth: { persistSession: false } }
+);
+
+const $ = id => document.getElementById(id);
+
+$("loginBtn").onclick = login;
+$("pass").addEventListener("keydown", e => { if(e.key === "Enter") login(); });
+
+async function login() {
+  $("loginErr").hidden = true;
+  const email = $("email").value.trim(), password = $("pass").value;
+  if(!email || !password) { $("loginErr").textContent = "Enter email and password."; $("loginErr").hidden = false; return; }
+  $("loginBtn").disabled = true;
+  $("loginBtn").innerHTML = '<span class="spinner"></span>Signing in...';
+  try {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if(error) throw error;
+    const { data: adm } = await sb.from("app_admins").select("email").eq("user_id", data.user.id).maybeSingle();
+    if(!adm) { await sb.auth.signOut(); throw new Error("Not an administrator."); }
+    $("step1").style.display = "none";
+    $("step2").style.display = "block";
+  } catch(e) {
+    $("loginErr").textContent = e.message; $("loginErr").hidden = false;
+  } finally {
+    $("loginBtn").disabled = false;
+    $("loginBtn").textContent = "Sign in";
+  }
+}
+
+$("copySqlBtn").onclick = function() {
+  const sql = $("sqlText").textContent;
+  navigator.clipboard.writeText(sql).then(() => {
+    $("copySqlBtn").textContent = "✓ Copied!";
+    setTimeout(() => { $("copySqlBtn").textContent = "📋 Copy SQL"; }, 2000);
+  });
+};
+
+$("wipeBtn").onclick = async function() {
+  if(!confirm("ARE YOU SURE? This will delete ALL members, donations, and logs. This cannot be undone.")) return;
+  var answer = prompt("Type DELETE to confirm:");
+  if(answer !== "DELETE") { $("errMsg").textContent = "Aborted. You did not type DELETE."; $("errMsg").hidden = false; return; }
+
+  $("wipeBtn").disabled = true;
+  $("wipeBtn").innerHTML = '<span class="spinner"></span>Deleting...';
+  $("log").hidden = false;
+  $("errMsg").hidden = true;
+  $("okMsg").hidden = true;
+  var log = $("log");
+  log.textContent = "";
+
+  function msg(t) { log.textContent += t + "\n"; log.scrollTop = log.scrollHeight; }
+
+  try {
+    // 1. Delete logs (no FK dependencies)
+    msg("1. Deleting sslcommerz_logs...");
+    var r1 = await sb.from("sslcommerz_logs").delete().gte("id", 0).select("id");
+    if(r1.error) {
+      msg("  Warning on logs: " + r1.error.message);
+    } else {
+      msg("  Deleted " + (r1.data ? r1.data.length : 0) + " log record(s).");
+    }
+
+    // 2. Fetch and delete donations individually / batch by ID
+    msg("2. Finding donations to delete...");
+    var { data: dons, error: fetchDonErr } = await sb.from("donations").select("id");
+    if(fetchDonErr) throw new Error("Fetch donations failed: " + fetchDonErr.message);
+
+    msg("  Found " + (dons ? dons.length : 0) + " donation record(s).");
+    if(dons && dons.length > 0) {
+      msg("  Deleting donations...");
+      var donIds = dons.map(d => d.id);
+      
+      // Try deleting in batches
+      var donDelRes = await sb.from("donations").delete().in("id", donIds).select("id");
+      if(donDelRes.error) throw new Error("Delete donations failed: " + donDelRes.error.message);
+      
+      var deletedDonCount = donDelRes.data ? donDelRes.data.length : 0;
+      msg("  Deleted " + deletedDonCount + " of " + donIds.length + " donation(s).");
+
+      if(deletedDonCount < donIds.length) {
+        // Fallback: try individual deletes
+        msg("  Attempting item-by-item deletion...");
+        for(let id of donIds) {
+          await sb.from("donations").delete().eq("id", id);
+        }
+      }
+    }
+
+    // Double check if any donations remain
+    var { count: remainingDons } = await sb.from("donations").select("id", { count: "exact", head: true });
+    if(remainingDons && remainingDons > 0) {
+      throw new Error(
+        "PostgreSQL RLS policy restricted deleting " + remainingDons + " donation(s) via client API.\n" +
+        "Please use the direct SQL snippet below in Supabase SQL Editor to wipe the database."
+      );
+    }
+    msg("  All donations cleared.");
+
+    // 3. Delete members
+    msg("3. Finding members to delete...");
+    var { data: mems, error: fetchMemErr } = await sb.from("members").select("id");
+    if(fetchMemErr) throw new Error("Fetch members failed: " + fetchMemErr.message);
+
+    msg("  Found " + (mems ? mems.length : 0) + " member record(s).");
+    if(mems && mems.length > 0) {
+      msg("  Deleting members...");
+      var memIds = mems.map(m => m.id);
+      var memDelRes = await sb.from("members").delete().in("id", memIds).select("id");
+      if(memDelRes.error) throw new Error("Delete members failed: " + memDelRes.error.message);
+      msg("  Deleted " + (memDelRes.data ? memDelRes.data.length : 0) + " member(s).");
+    }
+
+    msg("\nSUCCESS: All members, donations, and logs have been wiped.");
+    $("okMsg").textContent = "All members, donations, and logs have been successfully wiped.";
+    $("okMsg").hidden = false;
+    $("wipeBtn").style.display = "none";
+
+  } catch(e) {
+    msg("\nERROR: " + e.message);
+    $("errMsg").textContent = e.message;
+    $("errMsg").hidden = false;
+    $("wipeBtn").disabled = false;
+    $("wipeBtn").textContent = "Delete everything";
+  }
+};
+</script>
+</body>
+</html>
